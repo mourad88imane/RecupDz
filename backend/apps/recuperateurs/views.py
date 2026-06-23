@@ -7,10 +7,10 @@ from django.db.models import Count
 from datetime import date, timedelta
 from apps.accounts.permissions import ModulePermission
 from .models import Recuperateur, AgrementRecuperateur
-from .models_specialisation import CategorieSpecialisation
+from .models_specialisation import CategorieSpecialisation, SousCategorieSpecialisation
 from .serializers import (
     RecuperateurSerializer, RecuperateurListSerializer, AgrementSerializer,
-    CategorieSpecialisationSerializer,
+    CategorieSpecialisationSerializer, SousCategorieAvecDetailsSerializer,
 )
 from .alerts import get_all_alerts, check_droit_recuperation
 
@@ -27,6 +27,56 @@ def specialisation_hierarchie(request):
         'sous_categories__details'
     ).all()
     return Response(CategorieSpecialisationSerializer(categories, many=True).data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def mes_types_dechets(request):
+    """
+    Endpoint utilisé par la page Traçabilité — cascade Type -> SousCatégories -> Codes.
+
+    ?type=MA  -> ne retourne que les sous-catégories cochées pour ce récupérateur
+                 dont au moins un détail a classe_nomenclature='MA'
+    ?type=SD  -> idem mais pour S ou SD
+
+    Chaque sous-catégorie retournée n'inclut QUE les détails (et leurs codes liés)
+    qui ont été cochés par l'administrateur pour CE récupérateur précis — c'est
+    ce qui permet d'avoir un affichage différent par récupérateur (ex: Gold
+    Environment ne voit que "Déchets d'emballage" avec les codes 15.1.1 à 15.1.8).
+    """
+    type_param = request.query_params.get('type', '')
+    user = request.user
+    recuperateur = getattr(user, 'recuperateur', None)
+
+    if recuperateur is None:
+        return Response({'sous_categories': []})
+
+    assigned = recuperateur.specialisation_details.all()
+    if type_param == 'MA':
+        assigned = assigned.filter(classe_nomenclature='MA')
+    elif type_param == 'SD':
+        assigned = assigned.filter(classe_nomenclature__in=['S', 'SD'])
+    elif type_param:
+        return Response({'sous_categories': []})
+
+    detail_ids = set(assigned.values_list('id', flat=True))
+    if not detail_ids:
+        return Response({'sous_categories': []})
+
+    sous_categorie_ids = (
+        SousCategorieSpecialisation.objects
+        .filter(details__id__in=detail_ids)
+        .distinct()
+    )
+
+    serializer = SousCategorieAvecDetailsSerializer(
+        sous_categorie_ids, many=True,
+        context={'detail_ids': detail_ids}
+    )
+    # On retire les sous-catégories qui finiraient avec une liste de détails vide
+    # (cas théorique de sécurité, ne devrait pas arriver vu le filtre ci-dessus)
+    data = [sc for sc in serializer.data if sc['details']]
+    return Response({'sous_categories': data})
 
 
 @api_view(['POST'])

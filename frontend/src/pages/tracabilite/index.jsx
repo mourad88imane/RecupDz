@@ -9,7 +9,6 @@ import {
 } from 'lucide-react'
 import api from '../../api'
 import { useAuthStore } from '../../store'
-import { NOMENCLATURE } from '../nomenclature/nomenclatureData'
 import DateInput from '../../components/common/DateInput'
 import toast from 'react-hot-toast'
 
@@ -64,53 +63,6 @@ function Modal({ open, onClose, title, children, size='max-w-3xl' }) {
   )
 }
 
-function CodeDechetPicker({ onChange, initialValue }) {
-  const [search, setSearch] = useState(initialValue || '')
-  const [open,   setOpen]   = useState(false)
-
-  const filtered = useMemo(() =>
-    NOMENCLATURE.filter(n =>
-      !search ||
-      n.code.toLowerCase().includes(search.toLowerCase()) ||
-      n.nom_fr.toLowerCase().includes(search.toLowerCase())
-    ).slice(0, 50)
-  , [search])
-
-  const select = (n) => {
-    setSearch(`${n.code} — ${n.nom_fr.slice(0,60)}`)
-    setOpen(false)
-    onChange(n)
-  }
-
-  return (
-    <div className="relative">
-      <input value={search}
-        onChange={e => { setSearch(e.target.value); setOpen(true) }}
-        onFocus={() => setOpen(true)}
-        placeholder="Rechercher un code dechet..."
-        className="input"/>
-      {open && (
-        <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-white dark:bg-[#1E293B] border border-[#E2E8F0] rounded-xl shadow-xl max-h-56 overflow-y-auto">
-          {filtered.length === 0
-            ? <p className="text-center py-4 text-xs text-slate-400">Aucun resultat</p>
-            : filtered.map(n => (
-              <button key={n.code} type="button" onClick={() => select(n)}
-                className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800 text-xs">
-                <span className="font-mono font-bold text-primary-700 flex-shrink-0 w-16">{n.code}</span>
-                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold flex-shrink-0
-                  ${n.classe==='SD'?'bg-red-100 text-red-700':n.classe==='S'?'bg-amber-100 text-amber-700':'bg-slate-100 text-slate-600'}`}>
-                  {n.classe}
-                </span>
-                <span className="text-slate-600 dark:text-slate-300 truncate">{n.nom_fr}</span>
-              </button>
-            ))
-          }
-        </div>
-      )}
-    </div>
-  )
-}
-
 function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
   const isEdit = !!operation?.id
   const { register, handleSubmit, watch, setValue, reset } = useForm({
@@ -121,11 +73,37 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
       recuperateur: currentUser?.recuperateur_id || '',
     }
   })
-  const [saving,     setSaving]     = useState(false)
-  const [codeDechet, setCodeDechet] = useState(operation?.code_dechet || '')
-  const [classe,     setClasse]     = useState(operation?.classe_dechet || '')
-  const [alertes,    setAlertes]    = useState([])
-  const [etape,      setEtape]      = useState(1)
+  const [saving,        setSaving]        = useState(false)
+  const [codeDechet,    setCodeDechet]    = useState(operation?.code_dechet || '')
+  const [classe,        setClasse]        = useState(operation?.classe_dechet || '')
+  const [typeDechet,    setTypeDechet]    = useState(
+    operation?.classe_dechet === 'MA' ? 'MA' :
+    ['S','SD'].includes(operation?.classe_dechet) ? 'SD' : ''
+  )
+  const [sousCategorie, setSousCategorie] = useState('')
+  const [sousCategories,setSousCategories]= useState([])
+  const [loadingCascade,setLoadingCascade]= useState(false)
+  const [alertes,       setAlertes]       = useState([])
+  const [etape,         setEtape]         = useState(1)
+
+  // Charge, pour le récupérateur connecté, la liste des sous-catégories +
+  // détails + codes nomenclature qui lui ont été assignés (Django Admin)
+  // pour le type choisi (MA ou SD). Chaque récupérateur peut avoir un mapping
+  // différent — voir endpoint /api/recuperateurs/mes-types-dechets/.
+  useEffect(() => {
+    if (!typeDechet) { setSousCategories([]); return }
+    setLoadingCascade(true)
+    api.get('/recuperateurs/mes-types-dechets/', { params: { type: typeDechet } })
+      .then(r => setSousCategories(r.data.sous_categories || []))
+      .catch(() => setSousCategories([]))
+      .finally(() => setLoadingCascade(false))
+  }, [typeDechet])
+
+  const sousCategorieObj = sousCategories.find(sc => String(sc.id) === sousCategorie)
+  // Tous les codes nomenclature des détails de la sous-catégorie choisie
+  const codesDisponibles = sousCategorieObj
+    ? sousCategorieObj.details.flatMap(d => d.codes.map(c => ({ ...c, detail_nom: d.nom })))
+    : []
 
   const isRecup    = currentUser?.role === 'RECUPERATEUR'
   const destination = watch('destination_type')
@@ -233,14 +211,80 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
 
           <div className="card p-4 space-y-3">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1"><Package size={11}/> Identification du dechet</p>
-            <F label="Code reglementaire du dechet" req>
-              <CodeDechetPicker
-                initialValue={operation?`${operation.code_dechet} — ${operation.designation_dechet||''}`:''}
-                onChange={n=>{setCodeDechet(n.code);setClasse(n.classe);setValue('designation_dechet',n.nom_fr);setValue('classe_dechet',n.classe)}}
-              />
-              <input type="hidden" {...register('designation_dechet')}/>
-              <input type="hidden" {...register('classe_dechet')}/>
+            <F label="Type de dechets" req>
+              <select value={typeDechet} className="input"
+                onChange={e => {
+                  setTypeDechet(e.target.value)
+                  // Reset toute la cascade car la liste proposee change
+                  setSousCategorie('')
+                  setCodeDechet('')
+                  setClasse('')
+                  setValue('designation_dechet', '')
+                  setValue('classe_dechet', '')
+                }}>
+                <option value="">-- Selectionner un type --</option>
+                <option value="MA">Dechets menagers et assimiles</option>
+                <option value="SD">Dechets speciaux et speciaux dangereux</option>
+              </select>
             </F>
+
+            {typeDechet && (
+              <F label="Categorie de dechet" req>
+                {loadingCascade ? (
+                  <p className="text-xs text-slate-400 py-2">Chargement...</p>
+                ) : sousCategories.length === 0 ? (
+                  <p className="text-xs text-amber-600 py-2">
+                    Aucune categorie ne vous a ete assignee pour ce type. Contactez l'administrateur.
+                  </p>
+                ) : (
+                  <select value={sousCategorie} className="input"
+                    onChange={e => {
+                      setSousCategorie(e.target.value)
+                      setCodeDechet('')
+                      setClasse('')
+                      setValue('designation_dechet', '')
+                      setValue('classe_dechet', '')
+                    }}>
+                    <option value="">-- Selectionner une categorie --</option>
+                    {sousCategories.map(sc => (
+                      <option key={sc.id} value={sc.id}>{sc.nom}</option>
+                    ))}
+                  </select>
+                )}
+              </F>
+            )}
+
+            {sousCategorie && (
+              <F label="Code reglementaire du dechet" req>
+                <select
+                  value={codeDechet}
+                  className="input"
+                  onChange={e => {
+                    const code = e.target.value
+                    const c = codesDisponibles.find(x => x.code === code)
+                    if (c) {
+                      setCodeDechet(c.code)
+                      setClasse(c.classe)
+                      setValue('designation_dechet', c.designation_fr)
+                      setValue('classe_dechet', c.classe)
+                    } else {
+                      setCodeDechet('')
+                      setClasse('')
+                      setValue('designation_dechet', '')
+                      setValue('classe_dechet', '')
+                    }
+                  }}>
+                  <option value="">-- Selectionner un code dechet --</option>
+                  {codesDisponibles.map(c => (
+                    <option key={c.code} value={c.code}>
+                      {c.code} — {c.designation_fr} ({c.detail_nom})
+                    </option>
+                  ))}
+                </select>
+                <input type="hidden" {...register('designation_dechet')}/>
+                <input type="hidden" {...register('classe_dechet')}/>
+              </F>
+            )}
             {classe&&(
               <div className="flex items-center gap-2">
                 <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${classe==='SD'?'bg-red-50 text-red-700 border-red-200':classe==='S'?'bg-amber-50 text-amber-700 border-amber-200':'bg-slate-50 text-slate-600 border-slate-200'}`}>Classe {classe}</span>

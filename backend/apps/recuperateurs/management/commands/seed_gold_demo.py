@@ -11,8 +11,10 @@ Idempotent — relancer met juste à jour le compte existant au lieu de planter.
 from datetime import date, timedelta
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from apps.recuperateurs.models import Recuperateur, AgrementRecuperateur
 from apps.recuperateurs.models_specialisation import DetailSpecialisation
+from apps.nomenclature.models import Nomenclature
 
 User = get_user_model()
 
@@ -39,6 +41,20 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f"{'✅ Compte créé' if created else 'ℹ️  Compte mis à jour'} : admin_gold / Gold2024!"
         ))
+
+        # Assigne le groupe RBAC 'recuperateur' (créé par `setup_rbac`) — indispensable
+        # pour que les permissions (et donc les pages visibles côté frontend) fonctionnent.
+        # Fait directement ici plutôt que d'attendre un futur passage de `setup_rbac`,
+        # qui ne migre que les utilisateurs déjà existants au moment où il est lancé.
+        try:
+            group = Group.objects.get(name='recuperateur')
+            user.groups.add(group)
+            self.stdout.write(self.style.SUCCESS("✅ Groupe RBAC 'recuperateur' assigné"))
+        except Group.DoesNotExist:
+            self.stdout.write(self.style.WARNING(
+                "⚠️  Groupe 'recuperateur' introuvable — lancez d'abord "
+                "`python manage.py setup_rbac`, puis relancez cette commande."
+            ))
 
         # ── 2. Fiche récupérateur ────────────────────────────────────────────
         recuperateur, created = Recuperateur.objects.get_or_create(
@@ -102,7 +118,8 @@ class Command(BaseCommand):
         noms_a_cocher = [
             'Chimique', 'Solvants', 'Traitement de surface',  # → SD
             'Huiles', 'DEEE', 'Pneumatiques',                 # → S
-            'PET', 'PEHD', 'Papier/carton',                   # → MA
+            'PET', 'PEHD', 'PP', 'Films',                     # → MA (emballage plastique)
+            'Papier/carton', 'Verre', 'Alu', 'Acier',         # → MA (emballage autres matières)
         ]
         details = DetailSpecialisation.objects.filter(nom__in=noms_a_cocher)
         if details.exists():
@@ -116,6 +133,40 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(
                 "⚠️  Aucun détail de spécialisation trouvé — lancez d'abord "
                 "`python manage.py seed_specialisation`."
+            ))
+
+        # ── 5. Cascade spécifique à Gold Environment — relie chacun des 8 détails
+        #     de la sous-catégorie "Déchets d'emballage" (PET, PEHD, PP, Films,
+        #     Papier/carton, Verre, Alu, Acier) à SON code précis 15.01.xx.
+        #     C'est CETTE relation (M2M codes_nomenclature) qui permet d'avoir
+        #     un mapping différent par récupérateur — un autre récupérateur
+        #     pourrait avoir les mêmes détails cochés mais liés à d'autres codes.
+        mapping_emballage = [
+            ('PET',           '15.01.02'),  # plastique
+            ('PEHD',          '15.01.02'),  # plastique
+            ('PP',            '15.01.02'),  # plastique
+            ('Films',         '15.01.02'),  # plastique
+            ('Papier/carton', '15.01.01'),
+            ('Verre',         '15.01.07'),
+            ('Alu',           '15.01.04'),  # metallique
+            ('Acier',         '15.01.04'),  # metallique
+        ]
+        cascade_ok = 0
+        for nom_detail, code in mapping_emballage:
+            detail = DetailSpecialisation.objects.filter(nom=nom_detail).first()
+            code_obj = Nomenclature.objects.filter(code=code).first()
+            if detail and code_obj:
+                detail.codes_nomenclature.add(code_obj)
+                cascade_ok += 1
+        if cascade_ok:
+            self.stdout.write(self.style.SUCCESS(
+                f"✅ Cascade configurée : {cascade_ok} détail(s) d'emballage liés "
+                f"à leurs codes nomenclature (15.01.01 à 15.01.08)"
+            ))
+        else:
+            self.stdout.write(self.style.WARNING(
+                "⚠️  Aucune cascade configurée — vérifiez que `seed_specialisation` "
+                "et la mise à jour de `setup.py` (codes 15.01.xx) ont bien été lancés."
             ))
 
         self.stdout.write(self.style.SUCCESS(

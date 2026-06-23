@@ -3,6 +3,7 @@ from .models import Recuperateur, AgrementRecuperateur, DocumentRecuperateur
 from .models_specialisation import (
     CategorieSpecialisation, SousCategorieSpecialisation, DetailSpecialisation,
 )
+from apps.nomenclature.serializers import NomenclatureSerializer
 
 class AgrementSerializer(serializers.ModelSerializer):
     type_display    = serializers.CharField(source='get_type_agrement_display', read_only=True)
@@ -55,6 +56,33 @@ class CategorieSpecialisationSerializer(serializers.ModelSerializer):
     class Meta:
         model  = CategorieSpecialisation
         fields = ['id', 'nom', 'icone', 'ordre', 'sous_categories']
+
+
+# ── Cascade Traçabilité : Type -> Sous-catégories cochées -> Codes liés ───────
+# Utilisé par la page Traçabilité pour proposer, selon le récupérateur connecté,
+# uniquement les sous-catégories et codes que l'administrateur lui a assignés.
+
+class DetailAvecCodesSerializer(serializers.ModelSerializer):
+    """Un détail de spécialisation avec ses codes de nomenclature liés."""
+    codes = NomenclatureSerializer(source='codes_nomenclature', many=True, read_only=True)
+
+    class Meta:
+        model  = DetailSpecialisation
+        fields = ['id', 'nom', 'classe_nomenclature', 'ordre', 'codes']
+
+
+class SousCategorieAvecDetailsSerializer(serializers.ModelSerializer):
+    """Une sous-catégorie avec uniquement les détails cochés pour ce récupérateur."""
+    details = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = SousCategorieSpecialisation
+        fields = ['id', 'nom', 'ordre', 'details']
+
+    def get_details(self, obj):
+        detail_ids = self.context.get('detail_ids', set())
+        details = obj.details.filter(id__in=detail_ids)
+        return DetailAvecCodesSerializer(details, many=True).data
 
 
 class RecuperateurSerializer(serializers.ModelSerializer):

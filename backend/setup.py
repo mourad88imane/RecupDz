@@ -84,6 +84,15 @@ NOMENCLATURE = [
     ('16.05.04','16','16.05','Produits chimiques dangereux (dont périmés)','مواد كيميائية خطرة','SD',True,True),
     ('18.01.03','18','18.01','Déchets dont la collecte et l\'élimination font l\'objet de prescriptions','نفايات طبية معدية','SD',True,True),
     ('19.08.07','19','19.08','Solutions et boues provenant de la régénération des échangeurs','محاليل وحمأة معالجة','SD',True,True),
+    # MA — Ménagers et Assimilés — Déchets d'emballage (15.01.xx)
+    ('15.01.01','15','15.01','Emballages en papier et carton','تغليف ورقي وكرتون','MA',False,False),
+    ('15.01.02','15','15.01','Emballages en matières plastiques','تغليف بلاستيكي','MA',False,False),
+    ('15.01.03','15','15.01','Emballages en bois','تغليف خشبي','MA',False,False),
+    ('15.01.04','15','15.01','Emballages métalliques','تغليف معدني','MA',False,False),
+    ('15.01.05','15','15.01','Emballages composites','تغليف مركب','MA',False,False),
+    ('15.01.06','15','15.01','Emballages en mélange','تغليف مختلط','MA',False,False),
+    ('15.01.07','15','15.01','Emballages en verre','تغليف زجاجي','MA',False,False),
+    ('15.01.08','15','15.01','Emballages textiles','تغليف نسيجي','MA',False,False),
 ]
 
 if Nomenclature.objects.count() < 10:

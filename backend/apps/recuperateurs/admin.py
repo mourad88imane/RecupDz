@@ -64,7 +64,12 @@ class SousCategorieSpecialisationAdmin(admin.ModelAdmin):
 
 @admin.register(DetailSpecialisation)
 class DetailSpecialisationAdmin(admin.ModelAdmin):
-    list_display  = ['nom', 'sous_categorie', 'classe_nomenclature', 'ordre']
+    list_display  = ['nom', 'sous_categorie', 'classe_nomenclature', 'nb_codes', 'ordre']
     list_filter   = ['sous_categorie__categorie', 'sous_categorie', 'classe_nomenclature']
     list_editable = ['ordre', 'classe_nomenclature']
     search_fields = ['nom']
+    filter_horizontal = ['codes_nomenclature']  # widget double-liste pour cocher les codes precis
+
+    def nb_codes(self, obj):
+        return obj.codes_nomenclature.count()
+    nb_codes.short_description = "Nb codes liés"
