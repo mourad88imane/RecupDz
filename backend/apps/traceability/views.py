@@ -9,6 +9,7 @@ from apps.accounts.permissions import ModulePermission
 from apps.accounts.models import AuditLog
 from .models import Traceability
 from .serializers import TraceabilitySerializer
+from .filters import TraceabilityFilter
 
 class TraceabilityViewSet(viewsets.ModelViewSet):
     module_label     = 'traceability'
@@ -20,7 +21,7 @@ class TraceabilityViewSet(viewsets.ModelViewSet):
     filter_backends  = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
     search_fields    = ['numero','code_dechet','designation_dechet',
                         'bon_livraison','bon_commande','chauffeur','immatriculation']
-    filterset_fields = ['recuperateur','statut','classe_dechet','destination_type']
+    filterset_class  = TraceabilityFilter
     ordering_fields  = ['date_recuperation','created_at','quantite']
 
     def _audit(self, action_name, instance, details=None):
@@ -50,7 +51,10 @@ class TraceabilityViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def stats(self, request):
-        qs = self.get_queryset()
+        # filter_queryset applique recuperateur/statut/classe/destination ET les
+        # filtres de période (date_recuperation, date_min/max, mois, annee) — voir
+        # TraceabilityFilter — pour que les statistiques reflètent la période choisie.
+        qs = self.filter_queryset(self.get_queryset())
         return Response({
             'total':             qs.count(),
             'quantite_totale':   qs.aggregate(t=Sum('quantite'))['t'] or 0,

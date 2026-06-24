@@ -13,7 +13,7 @@ import clsx from 'clsx'
 const NAV_BASE = [
   { to: '/dashboard',      icon: LayoutDashboard, label: 'Tableau de bord',     permission: null },
   { to: '/operateurs',     icon: Building2,        label: 'Opérateurs',          permission: 'operateurs.view_operateur' },
-  { to: '/tracabilite',    icon: Package,          label: 'Tracabilite',         permission: 'traceability.view_traceability' },
+  { to: '/tracabilite',    icon: Package,          label: 'Traçabilité',         permission: 'traceability.view_traceability' },
   { to: '/nomenclature',   icon: BookOpen,         label: 'Nomenclature',        permission: null },
   { to: '/glossaire',      icon: GraduationCap,    label: 'Glossaire',           permission: null },
   { to: '/documents',      icon: FileText,         label: 'Documents',           permission: 'archive.view_document' },

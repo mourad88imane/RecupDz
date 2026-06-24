@@ -37,24 +37,24 @@ const pvAPI = {
 const recupAPI = { getAll: () => api.get('/recuperateurs/?page_size=200') }
 
 const TABS = [
-  { key:'bsd',      label:'BSD',      icon:FileText,      desc:'Bordereaux de Suivi des Dechets — documents de tracabilite obligatoires' },
-  { key:'dsd',      label:'DSD',      icon:AlertTriangle, desc:'Declarations des Dechets Speciaux Dangereux — formulaire annuel officiel' },
-  { key:'pv',       label:'PV',       icon:Clipboard,     desc:'Proces-Verbaux de controle environnemental' },
-  { key:'rapports', label:'Rapports', icon:BarChart3,     desc:'Rapports environnementaux periodiques' },
+  { key:'bsd',      label:'BSD',      icon:FileText,      desc:'Bordereaux de Suivi des Déchets — documents de traçabilité obligatoires' },
+  { key:'dsd',      label:'DSD',      icon:AlertTriangle, desc:'Déclarations des Déchets Spéciaux Dangereux — formulaire annuel officiel' },
+  { key:'pv',       label:'PV',       icon:Clipboard,     desc:'Procès-Verbaux de contrôle environnemental' },
+  { key:'rapports', label:'Rapports', icon:BarChart3,     desc:'Rapports environnementaux périodiques' },
 ]
 const BSD_ST = {
-  BROUILLON:   { label:'Brouillon',  badge:'badge-gray',   icon:Clock        },
-  EMIS:        { label:'Emis',       badge:'badge-blue',   icon:FileText     },
-  EN_TRANSIT:  { label:'En transit', badge:'badge-yellow', icon:Clock        },
-  RECEPTIONNE: { label:'Receptionne',badge:'badge-green',  icon:CheckCircle2 },
-  SIGNE:       { label:'Signe',      badge:'badge-green',  icon:CheckCircle2 },
-  ARCHIVE:     { label:'Archive',    badge:'badge-gray',   icon:XCircle      },
+  BROUILLON:   { label:'Brouillon',   badge:'badge-gray',   icon:Clock        },
+  EMIS:        { label:'Émis',        badge:'badge-blue',   icon:FileText     },
+  EN_TRANSIT:  { label:'En transit',  badge:'badge-yellow', icon:Clock        },
+  RECEPTIONNE: { label:'Réceptionné', badge:'badge-green',  icon:CheckCircle2 },
+  SIGNE:       { label:'Signé',       badge:'badge-green',  icon:CheckCircle2 },
+  ARCHIVE:     { label:'Archivé',     badge:'badge-gray',   icon:XCircle      },
 }
 const DSD_ST = {
   BROUILLON: { label:'Brouillon', badge:'badge-gray',   icon:Clock        },
   SOUMISE:   { label:'Soumise',   badge:'badge-yellow', icon:Clock        },
-  VALIDEE:   { label:'Validee',   badge:'badge-green',  icon:CheckCircle2 },
-  ARCHIVEE:  { label:'Archive',   badge:'badge-gray',   icon:XCircle      },
+  VALIDEE:   { label:'Validée',   badge:'badge-green',  icon:CheckCircle2 },
+  ARCHIVEE:  { label:'Archivée',  badge:'badge-gray',   icon:XCircle      },
 }
 
 const SD_CODES = useMemo => NOMENCLATURE.filter(n => ['S','SD'].includes(n.classe))
@@ -78,7 +78,7 @@ function Modal({ open, onClose, title, children, size='max-w-2xl' }) {
   )
 }
 
-// ── Code Dechet Picker (shared by BSD and DSD) ────────────────────────────────
+// ── Code Déchet Picker (shared by BSD and DSD) ────────────────────────────────
 function CodeDechetPicker({ value, onChange }) {
   const [search, setSearch] = useState(value || '')
   const [open,   setOpen]   = useState(false)
@@ -106,13 +106,13 @@ function CodeDechetPicker({ value, onChange }) {
         value={search}
         onChange={e => { setSearch(e.target.value); setOpen(true) }}
         onFocus={() => setOpen(true)}
-        placeholder="Rechercher un dechet special ou dangereux..."
+        placeholder="Rechercher un déchet spécial ou dangereux..."
         className="input"
       />
       {open && (
         <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-white dark:bg-[#1E293B] border border-[#E2E8F0] rounded-xl shadow-xl max-h-52 overflow-y-auto">
           {filtered.length === 0 ? (
-            <p className="text-center py-4 text-slate-400 text-xs">Aucun resultat</p>
+            <p className="text-center py-4 text-slate-400 text-xs">Aucun résultat</p>
           ) : filtered.map(n => (
             <button key={n.code} type="button" onClick={() => select(n)}
               className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800 text-xs">
@@ -152,8 +152,8 @@ function BSDForm({ bsd, recuperateurs, currentUser, onSave, onClose }) {
     if (isRecup && currentUser?.recuperateur_id) data.recuperateur = currentUser.recuperateur_id
     data.code_dechet = codeDechet
     try {
-      if (isEdit) { await bsdAPI.update(bsd.id, data); toast.success('BSD mis a jour') }
-      else        { await bsdAPI.create(data);          toast.success('BSD cree') }
+      if (isEdit) { await bsdAPI.update(bsd.id, data); toast.success('BSD mis à jour') }
+      else        { await bsdAPI.create(data);          toast.success('BSD créé') }
       onSave()
     } catch { toast.error('Erreur') }
     finally { setSaving(false) }
@@ -186,8 +186,8 @@ function BSDForm({ bsd, recuperateurs, currentUser, onSave, onClose }) {
       a.href = url; a.setAttribute('download', `${formData.numero||'BSD'}.pdf`)
       document.body.appendChild(a); a.click(); a.remove()
       window.URL.revokeObjectURL(url)
-      toast.success('BSD telecharge !')
-    } catch { toast.error('Erreur generation PDF') }
+      toast.success('BSD téléchargé !')
+    } catch { toast.error('Erreur génération PDF') }
     finally { setGenerating(false) }
   }
 
@@ -206,24 +206,24 @@ function BSDForm({ bsd, recuperateurs, currentUser, onSave, onClose }) {
           <p className="text-sm font-semibold text-primary-800">{currentUser?.recuperateur_nom}</p>
         </div>
       ) : (
-        <F label="Recuperateur" req>
+        <F label="Récupérateur" req>
           <select {...register('recuperateur',{required:true})} className="input">
-            <option value="">-- Selectionner --</option>
+            <option value="">-- Sélectionner --</option>
             {recuperateurs.map(r=><option key={r.id} value={r.id}>{r.nom_raison_sociale}</option>)}
           </select>
         </F>
       )}
 
       <div className="grid grid-cols-2 gap-3">
-        <F label="Generateur / Producteur" req>
-          <input {...register('generateur_nom',{required:true})} className="input" placeholder="Nom du generateur"/>
+        <F label="Générateur / Producteur" req>
+          <input {...register('generateur_nom',{required:true})} className="input" placeholder="Nom du générateur"/>
         </F>
-        <F label="Adresse generateur">
+        <F label="Adresse générateur">
           <input {...register('generateur_adresse')} className="input" placeholder="Adresse..."/>
         </F>
       </div>
 
-      <F label="Code dechet (S ou SD)" req>
+      <F label="Code déchet (S ou SD)" req>
         <CodeDechetPicker
           value={bsd ? `${bsd.code_dechet} — ${bsd.designation||''}` : ''}
           onChange={(code, nom, classe) => {
@@ -235,15 +235,15 @@ function BSDForm({ bsd, recuperateurs, currentUser, onSave, onClose }) {
         <input type="hidden" {...register('designation')}/>
         <input type="hidden" {...register('classe')}/>
         {codeDechet && (
-          <p className="text-xs text-primary-600 mt-1 font-mono">Code selectionne : <strong>{codeDechet}</strong></p>
+          <p className="text-xs text-primary-600 mt-1 font-mono">Code sélectionné : <strong>{codeDechet}</strong></p>
         )}
       </F>
 
       <div className="grid grid-cols-2 gap-3">
-        <F label="Quantite" req>
+        <F label="Quantité" req>
           <input {...register('quantite',{required:true})} type="number" step="0.001" className="input"/>
         </F>
-        <F label="Unite">
+        <F label="Unité">
           <select {...register('unite')} className="input">
             <option value="KG">Kilogramme</option>
             <option value="TONNE">Tonne</option>
@@ -254,37 +254,37 @@ function BSDForm({ bsd, recuperateurs, currentUser, onSave, onClose }) {
       </div>
 
       <F label="Emballage / Conditionnement">
-        <input {...register('emballage')} className="input" placeholder="Futs, bacs, sacs..."/>
+        <input {...register('emballage')} className="input" placeholder="Fûts, bacs, sacs..."/>
       </F>
 
       <div className="grid grid-cols-2 gap-3">
         <F label="Transporteur">
           <input {...register('transporteur_nom')} className="input"/>
         </F>
-        <F label="Vehicule">
+        <F label="Véhicule">
           <input {...register('transporteur_vehicule')} className="input" placeholder="Immatriculation..."/>
         </F>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <F label="Destinataire / Recepteur">
+        <F label="Destinataire / Récepteur">
           <input {...register('recepteur_nom')} className="input"/>
         </F>
         <F label="Type de traitement">
           <select {...register('type_traitement')} className="input">
             <option value="">--</option>
             <option value="VALORISATION">Valorisation</option>
-            <option value="ELIMINATION">Elimination</option>
+            <option value="ELIMINATION">Élimination</option>
             <option value="CET">CET</option>
           </select>
         </F>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <F label="Date d emission" req>
+        <F label="Date d'émission" req>
           <DateInput value={watch('date_emission')||''} onChange={v=>setValue('date_emission',v)}/>
         </F>
-        <F label="Date de reception">
+        <F label="Date de réception">
           <DateInput value={watch('date_reception')||''} onChange={v=>setValue('date_reception',v)}/>
         </F>
       </div>
@@ -297,12 +297,12 @@ function BSDForm({ bsd, recuperateurs, currentUser, onSave, onClose }) {
 
       <div className="flex gap-3 pt-2 border-t border-[#E2E8F0]">
         <button type="submit" disabled={saving||generating} className="btn-primary">
-          <Save size={15}/> {saving?'Enregistrement...':isEdit?'Mettre a jour':'Creer le BSD'}
+          <Save size={15}/> {saving?'Enregistrement...':isEdit?'Mettre à jour':'Créer le BSD'}
         </button>
         <button type="button" onClick={downloadPdf} disabled={saving||generating} className="btn-secondary flex items-center gap-2">
           {generating
-            ? <><span className="w-4 h-4 border-2 border-slate-400/30 border-t-slate-500 rounded-full animate-spin"/>Generation...</>
-            : <><Download size={15}/>Telecharger PDF</>
+            ? <><span className="w-4 h-4 border-2 border-slate-400/30 border-t-slate-500 rounded-full animate-spin"/>Génération...</>
+            : <><Download size={15}/>Télécharger PDF</>
           }
         </button>
         <button type="button" onClick={onClose} className="btn-secondary">Annuler</button>
@@ -337,8 +337,8 @@ function DSDForm({ dsd, recuperateurs, currentUser, onSave, onClose }) {
     if (isRecup && currentUser?.recuperateur_id) data.recuperateur = currentUser.recuperateur_id
     data.code_dechet = codeDechet
     try {
-      if (isEdit) { await dsdAPI.update(dsd.id, data); toast.success('DSD mise a jour') }
-      else        { await dsdAPI.create(data);          toast.success('DSD creee') }
+      if (isEdit) { await dsdAPI.update(dsd.id, data); toast.success('DSD mise à jour') }
+      else        { await dsdAPI.create(data);          toast.success('DSD créée') }
       onSave()
     } catch { toast.error('Erreur') }
     finally { setSaving(false) }
@@ -396,8 +396,8 @@ function DSDForm({ dsd, recuperateurs, currentUser, onSave, onClose }) {
       a.setAttribute('download', `DSD_${currentData.denomination||'document'}_${currentData.annee||'2024'}.pdf`)
       document.body.appendChild(a); a.click(); a.remove()
       window.URL.revokeObjectURL(url)
-      toast.success('PDF DSD telecharge !')
-    } catch { toast.error('Erreur generation PDF') }
+      toast.success('PDF DSD téléchargé !')
+    } catch { toast.error('Erreur génération PDF') }
     finally { setGenerating(false) }
   }
 
@@ -418,13 +418,13 @@ function DSDForm({ dsd, recuperateurs, currentUser, onSave, onClose }) {
       <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200">
         <AlertTriangle size={14} className="text-amber-500 flex-shrink-0 mt-0.5"/>
         <p className="text-xs text-amber-700">
-          <strong>Decret executif n°05-315</strong> — A transmettre dans un delai n'excedant pas 3 mois apres la cloture de l'annee.
+          <strong>Décret exécutif n°05-315</strong> — À transmettre dans un délai n'excédant pas 3 mois après la clôture de l'année.
         </p>
       </div>
 
-      <Sec>Identification du generateur</Sec>
+      <Sec>Identification du générateur</Sec>
       <div className="grid grid-cols-2 gap-3">
-        <F label="Annee" req col=""><input {...register('annee',{required:true})} className="input" placeholder="2024"/></F>
+        <F label="Année" req col=""><input {...register('annee',{required:true})} className="input" placeholder="2024"/></F>
         <F label="Date de transmission" col="">
           <DateInput value={watch('date_transmission')||''} onChange={v=>setValue('date_transmission',v)}/>
         </F>
@@ -433,37 +433,37 @@ function DSDForm({ dsd, recuperateurs, currentUser, onSave, onClose }) {
             {['EURL','SARL','SPA','SNC','PHYSIQUE','AUTRE'].map(s=><option key={s}>{s}</option>)}
           </select>
         </F>
-        <F label="Denomination" req col="">
+        <F label="Dénomination" req col="">
           <input {...register('denomination',{required:true})} className="input"/>
         </F>
-        <F label="Siege social" req col="col-span-2">
+        <F label="Siège social" req col="col-span-2">
           <input {...register('siege_social',{required:true})} className="input"/>
         </F>
-        <F label="Domaine d'activite" col="">
+        <F label="Domaine d'activité" col="">
           <input {...register('domaine_activite')} className="input"/>
         </F>
         <F label="Certification" col="">
-          <input {...register('certification')} className="input" placeholder="Agrement n°..."/>
+          <input {...register('certification')} className="input" placeholder="Agrément n°..."/>
         </F>
-        <F label="Responsable dechets" req col="col-span-2">
+        <F label="Responsable déchets" req col="col-span-2">
           <input {...register('responsable_dechets',{required:true})} className="input"/>
         </F>
       </div>
 
-      <Sec>A — Nature, quantite et caracteristiques</Sec>
+      <Sec>A — Nature, quantité et caractéristiques</Sec>
       <div className="grid grid-cols-2 gap-3">
-        <F label="Matiere premiere" col="">
+        <F label="Matière première" col="">
           <input {...register('matiere_premiere')} className="input"/>
         </F>
         <F label="Consistance" col="">
           <select {...register('consistance')} className="input">
             <option value="">--</option>
-            {['Solide','Liquide','Gazeux','Pateux','Liquide / Pateux'].map(s=><option key={s}>{s}</option>)}
+            {['Solide','Liquide','Gazeux','Pâteux','Liquide / Pâteux'].map(s=><option key={s}>{s}</option>)}
           </select>
         </F>
 
-        {/* Code dechet with picker — same as BSD */}
-        <F label="Code du dechet (S ou SD)" req col="col-span-2">
+        {/* Code déchet with picker — same as BSD */}
+        <F label="Code du déchet (S ou SD)" req col="col-span-2">
           <CodeDechetPicker
             value={dsd ? `${dsd.code_dechet||''} — ${dsd.denomination_dechet||''}` : ''}
             onChange={(code, nom, classe) => {
@@ -475,26 +475,26 @@ function DSDForm({ dsd, recuperateurs, currentUser, onSave, onClose }) {
           <input type="hidden" {...register('code_dechet')}/>
           {codeDechet && (
             <p className="text-xs text-primary-600 mt-1 font-mono">
-              Code selectionne : <strong>{codeDechet}</strong>
+              Code sélectionné : <strong>{codeDechet}</strong>
             </p>
           )}
         </F>
 
-        <F label="Denomination du dechet" req col="col-span-2">
+        <F label="Dénomination du déchet" req col="col-span-2">
           <input {...register('denomination_dechet',{required:true})} className="input"
-            placeholder="Se remplit automatiquement apres selection du code"/>
+            placeholder="Se remplit automatiquement après sélection du code"/>
         </F>
 
-        <F label="Autres precisions" col="col-span-2">
+        <F label="Autres précisions" col="col-span-2">
           <input {...register('autres_precisions')} className="input"/>
         </F>
-        <F label="Quantite generee (t/an)" req col="">
+        <F label="Quantité générée (t/an)" req col="">
           <input {...register('quantite_generee',{required:true})} type="number" step="0.01" className="input"/>
         </F>
         <F label="Composition chimique" col="">
           <input {...register('composition_chimique')} className="input"/>
         </F>
-        <F label="Critere de dangerosite" col="col-span-2">
+        <F label="Critère de dangerosité" col="col-span-2">
           <input {...register('critere_dangerosite')} className="input" placeholder="H3 Inflammable, H6 Toxique..."/>
         </F>
         <F label="Stockage temporaire (t/an)" col="">
@@ -503,28 +503,28 @@ function DSDForm({ dsd, recuperateurs, currentUser, onSave, onClose }) {
         <F label="Stockage permanent (t/an)" col="">
           <input {...register('stockage_permanent_qte')} type="number" step="0.01" className="input" placeholder="0"/>
         </F>
-        <F label="Modalites de stockage" col="col-span-2">
+        <F label="Modalités de stockage" col="col-span-2">
           <textarea {...register('modalites_stockage')} className="input" rows={2}/>
         </F>
       </div>
 
       <Sec>B — Modes de traitement</Sec>
       <div className="grid grid-cols-2 gap-3">
-        <F label="Modalites de gestion" col=""><textarea {...register('modalites_gestion')} className="input" rows={2}/></F>
-        <F label="Modalites de controle" col=""><textarea {...register('modalites_controle')} className="input" rows={2}/></F>
-        <F label="Modalites d'elimination" col="col-span-2"><textarea {...register('modalites_elimination')} className="input" rows={2}/></F>
+        <F label="Modalités de gestion" col=""><textarea {...register('modalites_gestion')} className="input" rows={2}/></F>
+        <F label="Modalités de contrôle" col=""><textarea {...register('modalites_controle')} className="input" rows={2}/></F>
+        <F label="Modalités d'élimination" col="col-span-2"><textarea {...register('modalites_elimination')} className="input" rows={2}/></F>
         <F label="Types d'installation" col=""><input {...register('types_installation')} className="input"/></F>
         <F label="Types de traitement" col=""><input {...register('types_traitement')} className="input"/></F>
-        <F label="Quantites traitees (t/an)" col=""><input {...register('quantites_traitees')} type="number" step="0.01" className="input"/></F>
+        <F label="Quantités traitées (t/an)" col=""><input {...register('quantites_traitees')} type="number" step="0.01" className="input"/></F>
         <F label="Rendement" col=""><input {...register('rendement_traitement')} className="input" placeholder="99%"/></F>
       </div>
 
-      <Sec>C — Mesures pour eviter la production</Sec>
+      <Sec>C — Mesures pour éviter la production</Sec>
       <div className="grid grid-cols-4 gap-3">
-        <F label="Reutilisation (t/an)" col=""><input {...register('reutilisation_qte')} type="number" step="0.01" className="input"/></F>
+        <F label="Réutilisation (t/an)" col=""><input {...register('reutilisation_qte')} type="number" step="0.01" className="input"/></F>
         <F label="Recyclage (t/an)" col=""><input {...register('recyclage_qte')} type="number" step="0.01" className="input"/></F>
         <F label="Valorisation (t/an)" col=""><input {...register('valorisation_qte')} type="number" step="0.01" className="input"/></F>
-        <F label="Elimination (t/an)" col=""><input {...register('elimination_qte')} type="number" step="0.01" className="input"/></F>
+        <F label="Élimination (t/an)" col=""><input {...register('elimination_qte')} type="number" step="0.01" className="input"/></F>
       </div>
 
       {[
@@ -538,17 +538,17 @@ function DSDForm({ dsd, recuperateurs, currentUser, onSave, onClose }) {
           <p className="text-xs font-bold text-slate-500">{t}</p>
           <div className="grid grid-cols-2 gap-2">
             <div><label className="label text-xs">Mesures prises</label><textarea {...register(p)} className="input text-xs" rows={2}/></div>
-            <div><label className="label text-xs">A envisager</label><textarea {...register(e)} className="input text-xs" rows={2}/></div>
+            <div><label className="label text-xs">À envisager</label><textarea {...register(e)} className="input text-xs" rows={2}/></div>
           </div>
         </div>
       ))}
 
       <div className="flex gap-3 pt-3 border-t border-[#E2E8F0] sticky bottom-0 bg-white dark:bg-[#1E293B] py-3">
         <button type="submit" disabled={saving} className="btn-primary">
-          <Save size={15}/> {saving?'Enregistrement...':isEdit?'Mettre a jour':'Enregistrer la DSD'}
+          <Save size={15}/> {saving?'Enregistrement...':isEdit?'Mettre à jour':'Enregistrer la DSD'}
         </button>
         <button type="button" onClick={downloadPdf} disabled={generating} className="btn-secondary">
-          <Download size={15}/> {generating?'Generation...':'Telecharger PDF'}
+          <Download size={15}/> {generating?'Génération...':'Télécharger PDF'}
         </button>
         <button type="button" onClick={onClose} className="btn-secondary">Annuler</button>
       </div>
@@ -572,8 +572,8 @@ function PVForm({ pv, recuperateurs, currentUser, onSave, onClose }) {
     setSaving(true)
     if (isRecup && currentUser?.recuperateur_id) data.recuperateur = currentUser.recuperateur_id
     try {
-      if (isEdit) { await pvAPI.update(pv.id,data); toast.success('PV mis a jour') }
-      else        { await pvAPI.create(data);        toast.success('PV cree') }
+      if (isEdit) { await pvAPI.update(pv.id,data); toast.success('PV mis à jour') }
+      else        { await pvAPI.create(data);        toast.success('PV créé') }
       onSave()
     } catch { toast.error('Erreur') }
     finally { setSaving(false) }
@@ -597,8 +597,8 @@ function PVForm({ pv, recuperateurs, currentUser, onSave, onClose }) {
       a.href = url; a.setAttribute('download', `PV_${formData.pv_numero||'controle'}.pdf`)
       document.body.appendChild(a); a.click(); a.remove()
       window.URL.revokeObjectURL(url)
-      toast.success('PV telecharge !')
-    } catch { toast.error('Erreur generation PDF') }
+      toast.success('PV téléchargé !')
+    } catch { toast.error('Erreur génération PDF') }
     finally { setGenerating(false) }
   }
 
@@ -607,29 +607,29 @@ function PVForm({ pv, recuperateurs, currentUser, onSave, onClose }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {!isRecup && (
-        <F label="Recuperateur">
+        <F label="Récupérateur">
           <select {...register('recuperateur')} className="input">
-            <option value="">-- Selectionner --</option>
+            <option value="">-- Sélectionner --</option>
             {recuperateurs.map(r=><option key={r.id} value={r.id}>{r.nom_raison_sociale}</option>)}
           </select>
         </F>
       )}
       <div className="grid grid-cols-2 gap-3">
-        <F label="Type de controle">
+        <F label="Type de contrôle">
           <select {...register('type_inspection')} className="input">
-            <option value="ROUTINE">Controle de routine</option>
-            <option value="SURPRISE">Controle inopine</option>
-            <option value="PLAINTE">Suite a plainte</option>
-            <option value="SUIVI">Controle de suivi</option>
+            <option value="ROUTINE">Contrôle de routine</option>
+            <option value="SURPRISE">Contrôle inopiné</option>
+            <option value="PLAINTE">Suite à plainte</option>
+            <option value="SUIVI">Contrôle de suivi</option>
           </select>
         </F>
-        <F label="Date du controle">
+        <F label="Date du contrôle">
           <DateInput value={watch('date_inspection')||''} onChange={v=>setValue('date_inspection',v)}/>
         </F>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <F label="N° PV"><input {...register('pv_numero')} className="input" placeholder="PV-2024-..."/></F>
-        <F label="Resultat">
+        <F label="Résultat">
           <select {...register('resultat')} className="input">
             <option value="">--</option>
             <option value="CONFORME">Conforme</option>
@@ -642,12 +642,12 @@ function PVForm({ pv, recuperateurs, currentUser, onSave, onClose }) {
       <F label="Actions correctives"><textarea {...register('actions_correctives')} className="input" rows={2}/></F>
       <div className="flex gap-3 pt-2 border-t border-[#E2E8F0]">
         <button type="submit" disabled={saving||generating} className="btn-primary">
-          <Save size={15}/> {saving?'...':isEdit?'Mettre a jour':'Creer le PV'}
+          <Save size={15}/> {saving?'...':isEdit?'Mettre à jour':'Créer le PV'}
         </button>
         <button type="button" onClick={downloadPdf} disabled={saving||generating} className="btn-secondary flex items-center gap-2">
           {generating
-            ? <><span className="w-4 h-4 border-2 border-slate-400/30 border-t-slate-500 rounded-full animate-spin"/>Generation...</>
-            : <><Download size={15}/>Telecharger PDF</>
+            ? <><span className="w-4 h-4 border-2 border-slate-400/30 border-t-slate-500 rounded-full animate-spin"/>Génération...</>
+            : <><Download size={15}/>Télécharger PDF</>
           }
         </button>
         <button type="button" onClick={onClose} className="btn-secondary">Annuler</button>
@@ -819,7 +819,7 @@ export default function DocumentsPage() {
       if (type==='bsd') await bsdAPI.delete(id)
       else if (type==='dsd') await dsdAPI.delete(id)
       else await pvAPI.delete(id)
-      toast.success('Supprime'); load()
+      toast.success('Supprimé'); load()
     } catch { toast.error('Erreur') }
   }
 
@@ -831,7 +831,7 @@ export default function DocumentsPage() {
       a.href = url; a.setAttribute('download',`${doc.numero||'BSD'}.pdf`)
       document.body.appendChild(a); a.click(); a.remove()
       window.URL.revokeObjectURL(url)
-      toast.success('BSD telecharge')
+      toast.success('BSD téléchargé')
     } catch { toast.error('Erreur PDF') }
   }
 
@@ -843,7 +843,7 @@ export default function DocumentsPage() {
       a.href = url; a.setAttribute('download',`DSD_${doc.denomination}_${doc.annee}.pdf`)
       document.body.appendChild(a); a.click(); a.remove()
       window.URL.revokeObjectURL(url)
-      toast.success('DSD telecharge')
+      toast.success('DSD téléchargé')
     } catch { toast.error('Erreur PDF') }
   }
 
@@ -855,7 +855,7 @@ export default function DocumentsPage() {
       a.href = url; a.setAttribute('download',`PV_${doc.pv_numero||doc.id}.pdf`)
       document.body.appendChild(a); a.click(); a.remove()
       window.URL.revokeObjectURL(url)
-      toast.success('PV telecharge')
+      toast.success('PV téléchargé')
     } catch { toast.error('Erreur PDF') }
   }
 
@@ -879,7 +879,7 @@ export default function DocumentsPage() {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <FileText size={24} className="text-primary-600"/> Documents et Rapports
           </h1>
-          <p className="text-slate-500 text-sm mt-0.5">BSD — DSD — Proces-Verbaux — Rapports</p>
+          <p className="text-slate-500 text-sm mt-0.5">BSD — DSD — Procès-Verbaux — Rapports</p>
         </div>
         <button onClick={()=>{setEditing(null);setShowForm(true)}} className="btn-primary">
           <Plus size={16}/> {getBtnLabel()}
@@ -924,7 +924,7 @@ export default function DocumentsPage() {
       {loading ? <Spinner/> : items.length===0 ? (
         <div className="card p-14 text-center">
           <TabIcon size={36} className="mx-auto mb-3 text-slate-200"/>
-          <p className="font-semibold text-slate-400">Aucun {currentTab?.label} trouve</p>
+          <p className="font-semibold text-slate-400">Aucun {currentTab?.label} trouvé</p>
           <button onClick={()=>{setEditing(null);setShowForm(true)}} className="btn-primary mt-4">
             <Plus size={15}/> {getBtnLabel()}
           </button>

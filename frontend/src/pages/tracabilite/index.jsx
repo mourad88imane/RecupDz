@@ -30,18 +30,18 @@ const opListAPI = {
 const DESTINATIONS = [
   { key:'STOCKAGE',     label:'Stockage temporaire',         icon:Warehouse, color:'text-slate-600', bg:'bg-slate-50'  },
   { key:'VALORISATION', label:'Valorisation / Recyclage',    icon:Recycle,   color:'text-teal-600',  bg:'bg-teal-50'   },
-  { key:'ELIMINATION',  label:'Elimination',                 icon:Flame,     color:'text-red-600',   bg:'bg-red-50'    },
+  { key:'ELIMINATION',  label:'Élimination',                 icon:Flame,     color:'text-red-600',   bg:'bg-red-50'    },
   { key:'CET',          label:"Centre d'Enfouissement (CET)",icon:Archive,   color:'text-amber-600', bg:'bg-amber-50'  },
 ]
 
 const STATUT_CFG = {
-  EN_COURS:   { label:'En cours',     badge:'badge-yellow', icon:Clock        },
-  ENLEVEMENT: { label:'Enlevement',   badge:'badge-yellow', icon:Truck        },
-  TRANSPORT:  { label:'Transport',    badge:'badge-yellow', icon:Truck        },
-  RECEPTION:  { label:'Receptionne',  badge:'badge-blue',   icon:Package      },
-  TRAITEMENT: { label:'Traitement',   badge:'badge-orange', icon:Zap          },
-  TERMINEE:   { label:'Cloture',      badge:'badge-green',  icon:CheckCircle2 },
-  ANNULE:     { label:'Annule',       badge:'badge-red',    icon:XCircle      },
+  EN_COURS:   { label:'En cours',      badge:'badge-yellow', icon:Clock        },
+  ENLEVEMENT: { label:'Enlèvement',    badge:'badge-yellow', icon:Truck        },
+  TRANSPORT:  { label:'Transport',     badge:'badge-yellow', icon:Truck        },
+  RECEPTION:  { label:'Réceptionné',   badge:'badge-blue',   icon:Package      },
+  TRAITEMENT: { label:'Traitement',    badge:'badge-orange', icon:Zap          },
+  TERMINEE:   { label:'Clôturé',       badge:'badge-green',  icon:CheckCircle2 },
+  ANNULE:     { label:'Annulé',        badge:'badge-red',    icon:XCircle      },
 }
 
 function Spinner() {
@@ -89,8 +89,8 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
   const [alertes,       setAlertes]       = useState([])
   const [etape,         setEtape]         = useState(1)
 
-  // 4eme niveau de la cascade : une fois un code reglementaire choisi, charge
-  // les designations precises disponibles pour ce code (ex: code 15.01.02
+  // 4ème niveau de la cascade : une fois un code réglementaire choisi, charge
+  // les désignations précises disponibles pour ce code (ex: code 15.01.02
   // "Emballages plastiques" -> "Bouteille d'eau PET", "Flacon PEHD"...).
   useEffect(() => {
     if (!codeDechet) { setDesignations([]); setDesignationChoisie(''); return }
@@ -151,8 +151,8 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
     data.code_dechet   = codeDechet
     data.classe_dechet = classe
     try {
-      if (isEdit) { await opAPI.update(operation.id, data); toast.success('Dossier mis a jour') }
-      else        { await opAPI.create(data);                toast.success('Dossier de tracabilite cree') }
+      if (isEdit) { await opAPI.update(operation.id, data); toast.success('Dossier mis à jour') }
+      else        { await opAPI.create(data);                toast.success('Dossier de traçabilité créé') }
       onSave()
     } catch { toast.error('Erreur') }
     finally { setSaving(false) }
@@ -166,10 +166,10 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
   )
 
   const steps = [
-    {n:1, label:'Generateur & Dechet'},
-    {n:2, label:'Enlevement & Transport'},
+    {n:1, label:'Générateur & Déchet'},
+    {n:2, label:'Enlèvement & Transport'},
     {n:3, label:'Destination finale'},
-    {n:4, label:'Statut & Cloture'},
+    {n:4, label:'Statut & Clôture'},
   ]
 
   return (
@@ -203,24 +203,24 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
             <div className="card p-3 bg-primary-50 border-primary-200 flex items-center gap-2">
               <Shield size={14} className="text-primary-600 flex-shrink-0"/>
               <div>
-                <p className="text-xs text-primary-500">Recuperateur (vous)</p>
+                <p className="text-xs text-primary-500">Récupérateur (vous)</p>
                 <p className="font-semibold text-primary-800 text-sm">{currentUser?.recuperateur_nom}</p>
               </div>
             </div>
           ) : (
-            <F label="Recuperateur" req>
+            <F label="Récupérateur" req>
               <select {...register('recuperateur',{required:!isRecup})} className="input">
-                <option value="">-- Selectionner --</option>
+                <option value="">-- Sélectionner --</option>
                 {lists.recuperateurs.map(r=><option key={r.id} value={r.id}>{r.nom_raison_sociale} ({r.numero_id})</option>)}
               </select>
             </F>
           )}
 
           <div className="card p-4 space-y-3">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1"><Factory size={11}/> 1. Identification du generateur</p>
-            <F label="Generateur des dechets" req>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1"><Factory size={11}/> 1. Identification du générateur</p>
+            <F label="Générateur des déchets" req>
               <select {...register('generateur',{required:true})} className="input">
-                <option value="">-- Selectionner un generateur enregistre --</option>
+                <option value="">-- Sélectionner un générateur enregistré --</option>
                 {lists.generateurs.map(g=><option key={g.id} value={g.id}>{g.raison_sociale} — W.{g.wilaya||'?'}</option>)}
               </select>
             </F>
@@ -230,16 +230,16 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
               <F label="Bon de commande n°" col=""><input {...register('bon_commande')} className="input" placeholder="BC-..."/></F>
               <F label="Date commande" col=""><DateInput value={watch('date_commande')||''} onChange={v=>setValue('date_commande',v)}/></F>
             </div>
-            <F label="Commande client"><input {...register('commande_client')} className="input" placeholder="Reference..."/></F>
+            <F label="Commande client"><input {...register('commande_client')} className="input" placeholder="Référence..."/></F>
           </div>
 
           <div className="card p-4 space-y-3">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1"><Package size={11}/> Identification du dechet</p>
-            <F label="Type de dechets" req>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1"><Package size={11}/> Identification du déchet</p>
+            <F label="Type de déchets" req>
               <select value={typeDechet} className="input"
                 onChange={e => {
                   setTypeDechet(e.target.value)
-                  // Reset toute la cascade car la liste proposee change
+                  // Reset toute la cascade car la liste proposée change
                   setSousCategorie('')
                   setCodeDechet('')
                   setClasse('')
@@ -247,20 +247,20 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
                   setValue('designation_dechet', '')
                   setValue('classe_dechet', '')
                 }}>
-                <option value="">-- Selectionner un type --</option>
-                <option value="MA">Dechets menagers et assimiles</option>
-                <option value="SD">Dechets speciaux et speciaux dangereux</option>
+                <option value="">-- Sélectionner un type --</option>
+                <option value="MA">Déchets ménagers et assimilés</option>
+                <option value="SD">Déchets spéciaux et spéciaux dangereux</option>
               </select>
             </F>
 
             {typeDechet === 'MA' && (
               <>
-                <F label="Categorie de dechet" req>
+                <F label="Catégorie de déchet" req>
                   {loadingCascade ? (
                     <p className="text-xs text-slate-400 py-2">Chargement...</p>
                   ) : sousCategories.length === 0 ? (
                     <p className="text-xs text-amber-600 py-2">
-                      Aucune categorie ne vous a ete assignee pour ce type. Contactez l'administrateur.
+                      Aucune catégorie ne vous a été assignée pour ce type. Contactez l'administrateur.
                     </p>
                   ) : (
                     <select value={sousCategorie} className="input"
@@ -272,7 +272,7 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
                         setValue('designation_dechet', '')
                         setValue('classe_dechet', '')
                       }}>
-                      <option value="">-- Selectionner une categorie --</option>
+                      <option value="">-- Sélectionner une catégorie --</option>
                       {sousCategories.map(sc => (
                         <option key={sc.id} value={sc.id}>{sc.nom}</option>
                       ))}
@@ -281,7 +281,7 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
                 </F>
 
                 {sousCategorie && (
-                  <F label="Code reglementaire du dechet" req>
+                  <F label="Code réglementaire du déchet" req>
                     <select
                       value={codeDechet}
                       className="input"
@@ -301,7 +301,7 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
                           setValue('classe_dechet', '')
                         }
                       }}>
-                      <option value="">-- Selectionner un code dechet --</option>
+                      <option value="">-- Sélectionner un code déchet --</option>
                       {codesDisponibles.map(c => (
                         <option key={c.code} value={c.code}>
                           {c.code} — {c.designation_fr}
@@ -314,12 +314,12 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
                 )}
 
                 {codeDechet && (
-                  <F label="Designation precise">
+                  <F label="Désignation précise">
                     {loadingDesignations ? (
                       <p className="text-xs text-slate-400 py-2">Chargement...</p>
                     ) : designations.length === 0 ? (
                   <p className="text-xs text-slate-400 py-2">
-                    Aucune designation precise disponible pour ce code.
+                    Aucune désignation précise disponible pour ce code.
                   </p>
                 ) : (
                   <select value={designationChoisie} className="input"
@@ -336,7 +336,7 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
                         setValue('matiere_dechet', '')
                       }
                     }}>
-                    <option value="">-- Selectionner une designation --</option>
+                    <option value="">-- Sélectionner une désignation --</option>
                     {designations.map(d => (
                       <option key={d.id} value={d.id}>
                         {d.designation} {d.matiere ? `(${d.matiere})` : ''}
@@ -354,18 +354,18 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
             {typeDechet === 'SD' && (
               <div className="rounded-xl border-2 border-red-300 bg-red-50/60 dark:bg-red-900/10 p-4 space-y-3">
                 <p className="text-xs font-bold text-red-700 uppercase tracking-wide flex items-center gap-1.5">
-                  <AlertTriangle size={13}/> Dechets speciaux et speciaux dangereux — Codes autorises par l'agrement
+                  <AlertTriangle size={13}/> Déchets spéciaux et spéciaux dangereux — Codes autorisés par l'agrément
                 </p>
                 <p className="text-xs text-red-600/80">
-                  Seuls les codes couverts par l'agrement de {currentUser?.recuperateur_nom || 'votre entreprise'} sont affiches ci-dessous.
+                  Seuls les codes couverts par l'agrément de {currentUser?.recuperateur_nom || 'votre entreprise'} sont affichés ci-dessous.
                 </p>
 
-                <F label="Categorie de dechet (selon agrement)" req>
+                <F label="Catégorie de déchet (selon agrément)" req>
                   {loadingCascade ? (
                     <p className="text-xs text-slate-400 py-2">Chargement...</p>
                   ) : sousCategories.length === 0 ? (
                     <p className="text-xs text-amber-600 py-2">
-                      Aucune categorie de dechets speciaux ne vous a ete assignee. Contactez l'administrateur.
+                      Aucune catégorie de déchets spéciaux ne vous a été assignée. Contactez l'administrateur.
                     </p>
                   ) : (
                     <select value={sousCategorie} className="input"
@@ -377,7 +377,7 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
                         setValue('designation_dechet', '')
                         setValue('classe_dechet', '')
                       }}>
-                      <option value="">-- Selectionner une categorie --</option>
+                      <option value="">-- Sélectionner une catégorie --</option>
                       {sousCategories.map(sc => (
                         <option key={sc.id} value={sc.id}>{sc.nom}</option>
                       ))}
@@ -386,7 +386,7 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
                 </F>
 
                 {sousCategorie && (
-                  <F label="Code reglementaire autorise" req>
+                  <F label="Code réglementaire autorisé" req>
                     <select
                       value={codeDechet}
                       className="input"
@@ -406,7 +406,7 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
                           setValue('classe_dechet', '')
                         }
                       }}>
-                      <option value="">-- Selectionner un code dechet --</option>
+                      <option value="">-- Sélectionner un code déchet --</option>
                       {codesDisponibles.map(c => (
                         <option key={c.code} value={c.code}>
                           {c.code} — {c.designation_fr} ({c.classe})
@@ -422,42 +422,42 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
             {classe&&(
               <div className="flex items-center gap-2">
                 <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${classe==='SD'?'bg-red-50 text-red-700 border-red-200':classe==='S'?'bg-amber-50 text-amber-700 border-amber-200':'bg-slate-50 text-slate-600 border-slate-200'}`}>Classe {classe}</span>
-                {needsAgrmt&&<span className="text-xs text-red-600 font-bold flex items-center gap-1"><AlertCircle size={12}/>Dechet special — agrement obligatoire</span>}
+                {needsAgrmt&&<span className="text-xs text-red-600 font-bold flex items-center gap-1"><AlertCircle size={12}/>Déchet spécial — agrément obligatoire</span>}
               </div>
             )}
             <div className="grid grid-cols-2 gap-3">
-              <F label="Designation AR" col=""><input {...register('designation_ar')} className="input" placeholder="تسمية النفاية..."/></F>
-              <F label="Etat physique" col="">
+              <F label="Désignation AR" col=""><input {...register('designation_ar')} className="input" placeholder="تسمية النفاية..."/></F>
+              <F label="État physique" col="">
                 <select {...register('etat_physique')} className="input">
                   <option value="">--</option>
                   <option value="SOLIDE">Solide</option>
                   <option value="LIQUIDE">Liquide</option>
-                  <option value="BOUEUX">Boueux / Pateux</option>
+                  <option value="BOUEUX">Boueux / Pâteux</option>
                   <option value="GAZEUX">Gazeux</option>
                 </select>
               </F>
-              <F label="Quantite estimee" req col=""><input {...register('quantite',{required:true})} type="number" step="0.001" className="input" placeholder="0.000"/></F>
-              <F label="Unite" req col="">
+              <F label="Quantité estimée" req col=""><input {...register('quantite',{required:true})} type="number" step="0.001" className="input" placeholder="0.000"/></F>
+              <F label="Unité" req col="">
                 <select {...register('unite',{required:true})} className="input">
                   <option value="KG">Kilogramme (kg)</option>
                   <option value="TONNE">Tonne (t)</option>
-                  <option value="M3">Metre cube (m3)</option>
+                  <option value="M3">Mètre cube (m3)</option>
                   <option value="LITRE">Litre (L)</option>
-                  <option value="UNITE">Unite</option>
+                  <option value="UNITE">Unité</option>
                 </select>
               </F>
               <F label="Conditionnement" col="">
                 <select {...register('conditionnement')} className="input">
                   <option value="">--</option>
-                  {['Fut','Sac','Benne','Citerne','Big bag','Conteneur','Autre'].map(c=><option key={c}>{c}</option>)}
+                  {['Fût','Sac','Benne','Citerne','Big bag','Conteneur','Autre'].map(c=><option key={c}>{c}</option>)}
                 </select>
               </F>
-              <F label="Lieu de stockage" col=""><input {...register('lieu_stockage')} className="input" placeholder="Depot, aire..."/></F>
+              <F label="Lieu de stockage" col=""><input {...register('lieu_stockage')} className="input" placeholder="Dépôt, aire..."/></F>
             </div>
-            <F label="Caracteristiques de danger"><input {...register('caracteristiques_danger')} className="input" placeholder="H3 Inflammable, H6 Toxique..."/></F>
-            <F label="Date de recuperation" req><DateInput value={watch('date_recuperation')||''} onChange={v=>setValue('date_recuperation',v)}/></F>
+            <F label="Caractéristiques de danger"><input {...register('caracteristiques_danger')} className="input" placeholder="H3 Inflammable, H6 Toxique..."/></F>
+            <F label="Date de récupération" req><DateInput value={watch('date_recuperation')||''} onChange={v=>setValue('date_recuperation',v)}/></F>
           </div>
-          <div className="flex justify-end"><button type="button" onClick={()=>setEtape(2)} className="btn-primary">Etape suivante <ChevronRight size={15}/></button></div>
+          <div className="flex justify-end"><button type="button" onClick={()=>setEtape(2)} className="btn-primary">Étape suivante <ChevronRight size={15}/></button></div>
         </div>
       )}
 
@@ -465,36 +465,36 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
       {etape===2 && (
         <div className="space-y-4">
           <div className="card p-4 space-y-3">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1"><Package size={11}/> 2. Preparation de l'enlevement</p>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1"><Package size={11}/> 2. Préparation de l'enlèvement</p>
             <div className="grid grid-cols-2 gap-3">
-              <F label="N° Ordre d'enlevement" col=""><input {...register('ordre_enlevement')} className="input" placeholder="OE-2026-..."/></F>
-              <F label="Date prevue de collecte" col=""><DateInput value={watch('date_collecte_prevue')||''} onChange={v=>setValue('date_collecte_prevue',v)}/></F>
-              <F label="Date et heure d'enlevement" col=""><DateInput value={watch('date_enlevement')||''} onChange={v=>setValue('date_enlevement',v)}/></F>
-              <F label="Quantite reellement chargee" col=""><input {...register('quantite_chargee')} type="number" step="0.001" className="input"/></F>
-              <F label="Adresse exacte d'enlevement" col=""><input {...register('adresse_enlevement')} className="input" placeholder="Lieu de stockage..."/></F>
-              <F label="N° Vehicule" col=""><input {...register('immatriculation')} className="input" placeholder="16-XXXXX-16"/></F>
+              <F label="N° Ordre d'enlèvement" col=""><input {...register('ordre_enlevement')} className="input" placeholder="OE-2026-..."/></F>
+              <F label="Date prévue de collecte" col=""><DateInput value={watch('date_collecte_prevue')||''} onChange={v=>setValue('date_collecte_prevue',v)}/></F>
+              <F label="Date et heure d'enlèvement" col=""><DateInput value={watch('date_enlevement')||''} onChange={v=>setValue('date_enlevement',v)}/></F>
+              <F label="Quantité réellement chargée" col=""><input {...register('quantite_chargee')} type="number" step="0.001" className="input"/></F>
+              <F label="Adresse exacte d'enlèvement" col=""><input {...register('adresse_enlevement')} className="input" placeholder="Lieu de stockage..."/></F>
+              <F label="N° Véhicule" col=""><input {...register('immatriculation')} className="input" placeholder="16-XXXXX-16"/></F>
             </div>
           </div>
 
           <div className="card p-4 space-y-3">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1">
               <Truck size={11}/> 3. Transporteur
-              {needsAgrmt&&<span className="text-red-500 ml-1 text-[10px] font-bold">(Agrement obligatoire — dechets SD/S)</span>}
+              {needsAgrmt&&<span className="text-red-500 ml-1 text-[10px] font-bold">(Agrément obligatoire — déchets SD/S)</span>}
             </p>
             <F label="Transporteur">
               <select {...register('transporteur')} className="input"
                 onChange={e=>{setValue('transporteur',e.target.value);const t=lists.transporteurs.find(x=>String(x.id)===e.target.value);if(t){if(t.nom_conducteur)setValue('chauffeur',t.nom_conducteur);if(t.immatriculation)setValue('immatriculation',t.immatriculation)}}}>
-                <option value="">-- Selectionner ou saisir manuellement --</option>
+                <option value="">-- Sélectionner ou saisir manuellement --</option>
                 {lists.transporteurs.map(t=><option key={t.id} value={t.id}>{t.raison_sociale}</option>)}
               </select>
             </F>
             {needsAgrmt&&(
               <div className="card p-3 bg-amber-50 border-amber-200 space-y-2">
-                <p className="text-xs font-bold text-amber-700 flex items-center gap-1"><AlertTriangle size={11}/>Informations d'agrement transporteur requises</p>
+                <p className="text-xs font-bold text-amber-700 flex items-center gap-1"><AlertTriangle size={11}/>Informations d'agrément transporteur requises</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <F label="N° Agrement" col=""><input {...register('transporteur_agrement')} className="input text-xs" placeholder="AGR-..."/></F>
-                  <F label="Date agrement" col=""><DateInput value={watch('transporteur_date_agrement')||''} onChange={v=>setValue('transporteur_date_agrement',v)}/></F>
-                  <F label="Statut" col=""><select {...register('transporteur_statut_agrement')} className="input text-xs"><option value="ACTIF">Actif</option><option value="EXPIRE">Expire</option></select></F>
+                  <F label="N° Agrément" col=""><input {...register('transporteur_agrement')} className="input text-xs" placeholder="AGR-..."/></F>
+                  <F label="Date agrément" col=""><DateInput value={watch('transporteur_date_agrement')||''} onChange={v=>setValue('transporteur_date_agrement',v)}/></F>
+                  <F label="Statut" col=""><select {...register('transporteur_statut_agrement')} className="input text-xs"><option value="ACTIF">Actif</option><option value="EXPIRE">Expiré</option></select></F>
                   <F label="Type engin" col=""><input {...register('type_engin')} className="input text-xs" placeholder="Camion citerne..."/></F>
                 </div>
               </div>
@@ -502,10 +502,10 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
             <div className="grid grid-cols-2 gap-3">
               <F label="Chauffeur" col=""><input {...register('chauffeur')} className="input" placeholder="Nom du chauffeur"/></F>
               <F label="Immatriculation" col=""><input {...register('immatriculation')} className="input" placeholder="16-XXXXX-16"/></F>
-              <F label="Date et heure de depart" col=""><DateInput value={watch('date_depart')||''} onChange={v=>setValue('date_depart',v)}/></F>
-              <F label="Lieu de depart" col=""><input {...register('lieu_depart')} className="input" placeholder="Adresse de depart..."/></F>
-              <F label="Itineraire prevu" col=""><input {...register('itineraire')} className="input" placeholder="Route prevue..."/></F>
-              <F label="Incidents eventuels" col="">
+              <F label="Date et heure de départ" col=""><DateInput value={watch('date_depart')||''} onChange={v=>setValue('date_depart',v)}/></F>
+              <F label="Lieu de départ" col=""><input {...register('lieu_depart')} className="input" placeholder="Adresse de départ..."/></F>
+              <F label="Itinéraire prévu" col=""><input {...register('itineraire')} className="input" placeholder="Route prévue..."/></F>
+              <F label="Incidents éventuels" col="">
                 <select {...register('incident')} className="input">
                   <option value="">Aucun incident</option>
                   <option value="ACCIDENT">Accident</option>
@@ -518,7 +518,7 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
           </div>
           <div className="flex justify-between">
             <button type="button" onClick={()=>setEtape(1)} className="btn-secondary">Retour</button>
-            <button type="button" onClick={()=>setEtape(3)} className="btn-primary">Etape suivante <ChevronRight size={15}/></button>
+            <button type="button" onClick={()=>setEtape(3)} className="btn-primary">Étape suivante <ChevronRight size={15}/></button>
           </div>
         </div>
       )}
@@ -527,12 +527,12 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
       {etape===3 && (
         <div className="space-y-4">
           <div className="card p-4 space-y-3">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1"><Package size={11}/> 4. Reception chez le destinataire</p>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1"><Package size={11}/> 4. Réception chez le destinataire</p>
             <div className="grid grid-cols-2 gap-3">
               <F label="N° BSD" col=""><input {...register('bsd_numero')} className="input" placeholder="BSD-2026-..."/></F>
-              <F label="Date et heure d'arrivee" col=""><DateInput value={watch('date_reception')||''} onChange={v=>setValue('date_reception',v)}/></F>
-              <F label="Quantite acceptee" col=""><input {...register('quantite_acceptee')} type="number" step="0.001" className="input"/></F>
-              <F label="Quantite refusee" col=""><input {...register('quantite_refusee')} type="number" step="0.001" className="input"/></F>
+              <F label="Date et heure d'arrivée" col=""><DateInput value={watch('date_reception')||''} onChange={v=>setValue('date_reception',v)}/></F>
+              <F label="Quantité acceptée" col=""><input {...register('quantite_acceptee')} type="number" step="0.001" className="input"/></F>
+              <F label="Quantité refusée" col=""><input {...register('quantite_refusee')} type="number" step="0.001" className="input"/></F>
               <F label="Motif de refus" col="col-span-2"><input {...register('motif_refus')} className="input" placeholder="Motif (si applicable)..."/></F>
             </div>
           </div>
@@ -553,10 +553,10 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
               <div className="card p-3 bg-slate-50 space-y-2">
                 <p className="text-xs font-bold text-slate-500">Informations de stockage</p>
                 <div className="grid grid-cols-2 gap-3">
-                  <F label="Lieu de stockage" col=""><input {...register('lieu_stockage_final')} className="input" placeholder="Depot..."/></F>
+                  <F label="Lieu de stockage" col=""><input {...register('lieu_stockage_final')} className="input" placeholder="Dépôt..."/></F>
                   <F label="Date de stockage" col=""><DateInput value={watch('date_stockage')||''} onChange={v=>setValue('date_stockage',v)}/></F>
-                  <F label="Quantite stockee" col=""><input {...register('quantite_stockee')} type="number" step="0.001" className="input"/></F>
-                  <F label="Date prevue de sortie" col=""><DateInput value={watch('date_sortie_prevue')||''} onChange={v=>setValue('date_sortie_prevue',v)}/></F>
+                  <F label="Quantité stockée" col=""><input {...register('quantite_stockee')} type="number" step="0.001" className="input"/></F>
+                  <F label="Date prévue de sortie" col=""><DateInput value={watch('date_sortie_prevue')||''} onChange={v=>setValue('date_sortie_prevue',v)}/></F>
                 </div>
               </div>
             )}
@@ -566,14 +566,14 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
                 <p className="text-xs font-bold text-teal-700">Valorisation / Recyclage</p>
                 <F label="Valorisateur / Recycleur">
                   <select {...register('valorisateur')} className="input">
-                    <option value="">-- Selectionner --</option>
+                    <option value="">-- Sélectionner --</option>
                     {lists.valorisateurs.map(v=><option key={v.id} value={v.id}>{v.raison_sociale}</option>)}
                   </select>
                 </F>
                 <div className="grid grid-cols-2 gap-3">
-                  <F label="Quantite recue" col=""><input {...register('quantite_recue_valo')} type="number" step="0.001" className="input"/></F>
-                  <F label="Quantite valorisee" col=""><input {...register('quantite_valorisee')} type="number" step="0.001" className="input"/></F>
-                  <F label="Matiere obtenue" col=""><input {...register('produit_obtenu')} className="input" placeholder="Materiau recycle..."/></F>
+                  <F label="Quantité reçue" col=""><input {...register('quantite_recue_valo')} type="number" step="0.001" className="input"/></F>
+                  <F label="Quantité valorisée" col=""><input {...register('quantite_valorisee')} type="number" step="0.001" className="input"/></F>
+                  <F label="Matière obtenue" col=""><input {...register('produit_obtenu')} className="input" placeholder="Matériau recyclé..."/></F>
                   <F label="Taux de valorisation (%)" col=""><input {...register('taux_valorisation')} type="number" step="0.1" className="input" placeholder="99"/></F>
                 </div>
               </div>
@@ -581,21 +581,21 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
 
             {destination==='ELIMINATION'&&(
               <div className="card p-3 bg-red-50 space-y-2">
-                <p className="text-xs font-bold text-red-700 flex items-center gap-1"><AlertTriangle size={11}/>Elimination — Verification agrement obligatoire</p>
-                <F label="Eliminateur / Incinérateur">
+                <p className="text-xs font-bold text-red-700 flex items-center gap-1"><AlertTriangle size={11}/>Élimination — Vérification agrément obligatoire</p>
+                <F label="Éliminateur / Incinérateur">
                   <select {...register('eliminateur')} className="input">
-                    <option value="">-- Selectionner --</option>
+                    <option value="">-- Sélectionner --</option>
                     {lists.eliminateurs.map(e=><option key={e.id} value={e.id}>{e.raison_sociale}</option>)}
                   </select>
                 </F>
                 <div className="grid grid-cols-2 gap-3">
-                  <F label="N° Agrement" col=""><input {...register('eliminateur_agrement')} className="input" placeholder="AGR-..."/></F>
-                  <F label="Statut agrement" col=""><select {...register('eliminateur_statut')} className="input"><option value="ACTIF">Actif</option><option value="EXPIRE">Expire</option></select></F>
-                  <F label="Quantite recue" col=""><input {...register('quantite_recue_elim')} type="number" step="0.001" className="input"/></F>
-                  <F label="Procede d'elimination" col=""><input {...register('procede_elimination')} className="input" placeholder="Incineration..."/></F>
-                  <F label="Quantite eliminee" col=""><input {...register('quantite_eliminee')} type="number" step="0.001" className="input"/></F>
+                  <F label="N° Agrément" col=""><input {...register('eliminateur_agrement')} className="input" placeholder="AGR-..."/></F>
+                  <F label="Statut agrément" col=""><select {...register('eliminateur_statut')} className="input"><option value="ACTIF">Actif</option><option value="EXPIRE">Expiré</option></select></F>
+                  <F label="Quantité reçue" col=""><input {...register('quantite_recue_elim')} type="number" step="0.001" className="input"/></F>
+                  <F label="Procédé d'élimination" col=""><input {...register('procede_elimination')} className="input" placeholder="Incinération..."/></F>
+                  <F label="Quantité éliminée" col=""><input {...register('quantite_eliminee')} type="number" step="0.001" className="input"/></F>
                   <F label="Date de traitement" col=""><DateInput value={watch('date_traitement')||''} onChange={v=>setValue('date_traitement',v)}/></F>
-                  <F label="PV d'elimination" col="col-span-2"><input {...register('pv_elimination')} className="input" placeholder="N° PV..."/></F>
+                  <F label="PV d'élimination" col="col-span-2"><input {...register('pv_elimination')} className="input" placeholder="N° PV..."/></F>
                 </div>
               </div>
             )}
@@ -605,14 +605,14 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
                 <p className="text-xs font-bold text-amber-700">Centre d'Enfouissement Technique (CET)</p>
                 <F label="Centre CET">
                   <select {...register('cet')} className="input">
-                    <option value="">-- Selectionner --</option>
+                    <option value="">-- Sélectionner --</option>
                     {lists.cet.map(c=><option key={c.id} value={c.id}>{c.raison_sociale}</option>)}
                   </select>
                 </F>
                 <div className="grid grid-cols-2 gap-3">
-                  <F label="Date de mise en decharge" col=""><DateInput value={watch('date_mise_decharge')||''} onChange={v=>setValue('date_mise_decharge',v)}/></F>
-                  <F label="Quantite recue" col=""><input {...register('quantite_recue_cet')} type="number" step="0.001" className="input"/></F>
-                  <F label="Quantite enfouie" col=""><input {...register('quantite_enfouie')} type="number" step="0.001" className="input"/></F>
+                  <F label="Date de mise en décharge" col=""><DateInput value={watch('date_mise_decharge')||''} onChange={v=>setValue('date_mise_decharge',v)}/></F>
+                  <F label="Quantité reçue" col=""><input {...register('quantite_recue_cet')} type="number" step="0.001" className="input"/></F>
+                  <F label="Quantité enfouie" col=""><input {...register('quantite_enfouie')} type="number" step="0.001" className="input"/></F>
                   <F label="Attestation de prise en charge" col=""><input {...register('attestation_cet')} className="input" placeholder="N° attestation..."/></F>
                 </div>
               </div>
@@ -620,7 +620,7 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
           </div>
           <div className="flex justify-between">
             <button type="button" onClick={()=>setEtape(2)} className="btn-secondary">Retour</button>
-            <button type="button" onClick={()=>setEtape(4)} className="btn-primary">Etape suivante <ChevronRight size={15}/></button>
+            <button type="button" onClick={()=>setEtape(4)} className="btn-primary">Étape suivante <ChevronRight size={15}/></button>
           </div>
         </div>
       )}
@@ -629,30 +629,30 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
       {etape===4 && (
         <div className="space-y-4">
           <div className="card p-4 space-y-3">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1"><CheckCircle2 size={11}/> 6. Statut et cloture du dossier</p>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1"><CheckCircle2 size={11}/> 6. Statut et clôture du dossier</p>
             <F label="Statut du dossier">
               <select {...register('statut')} className="input">
                 <option value="EN_COURS">En cours</option>
-                <option value="ENLEVEMENT">En cours d'enlevement</option>
+                <option value="ENLEVEMENT">En cours d'enlèvement</option>
                 <option value="TRANSPORT">En transport</option>
-                <option value="RECEPTION">Receptionne</option>
+                <option value="RECEPTION">Réceptionné</option>
                 <option value="TRAITEMENT">En traitement</option>
-                <option value="TERMINEE">Terminee / Cloturee</option>
-                <option value="ANNULE">Annule</option>
+                <option value="TERMINEE">Terminée / Clôturée</option>
+                <option value="ANNULE">Annulé</option>
               </select>
             </F>
             <div className="card p-3 bg-blue-50 border-blue-200">
-              <p className="text-xs font-bold text-blue-700 mb-2 flex items-center gap-1"><FileText size={11}/>Documents generes automatiquement a la cloture</p>
-              {['BSD cloture','Certificat de valorisation ou d\'elimination','Historique complet du dechet','Registre de collecte','Rapport de mouvement du dechet'].map(d=>(
+              <p className="text-xs font-bold text-blue-700 mb-2 flex items-center gap-1"><FileText size={11}/>Documents générés automatiquement à la clôture</p>
+              {['BSD clôturé','Certificat de valorisation ou d\'élimination','Historique complet du déchet','Registre de collecte','Rapport de mouvement du déchet'].map(d=>(
                 <p key={d} className="text-xs text-blue-600 flex items-center gap-1"><CheckCircle2 size={9}/>{d}</p>
               ))}
             </div>
-            <F label="Observations generales"><textarea {...register('observations')} className="input" rows={3} placeholder="Notes, observations..."/></F>
+            <F label="Observations générales"><textarea {...register('observations')} className="input" rows={3} placeholder="Notes, observations..."/></F>
           </div>
           <div className="flex gap-3 pt-2 border-t border-[#E2E8F0]">
             <button type="button" onClick={()=>setEtape(3)} className="btn-secondary">Retour</button>
             <button type="submit" disabled={saving||alertes.length>0} className="btn-primary">
-              <Save size={15}/> {saving?'Enregistrement...':isEdit?'Mettre a jour':'Creer le dossier de tracabilite'}
+              <Save size={15}/> {saving?'Enregistrement...':isEdit?'Mettre à jour':'Créer le dossier de traçabilité'}
             </button>
             {alertes.length>0&&<span className="text-xs text-red-600 self-center font-semibold flex items-center gap-1"><AlertTriangle size={11}/>Corrigez les alertes</span>}
           </div>
@@ -729,14 +729,14 @@ export default function TracabilitePage() {
       if(isRecup&&user?.recuperateur_id)p.recuperateur=user.recuperateur_id
       const res=await opAPI.getAll(p)
       setOperations(res.data.results||res.data)
-    } catch{toast.error('Erreur chargement')}
+    } catch{toast.error('Erreur de chargement')}
     finally{setLoading(false)}
   }
 
   useEffect(()=>{loadLists()},[])
   useEffect(()=>{load()},[search,statut])
 
-  const handleDelete=async(id)=>{if(!window.confirm('Supprimer ce dossier ?'))return;try{await opAPI.delete(id);toast.success('Supprime');load()}catch{toast.error('Erreur')}}
+  const handleDelete=async(id)=>{if(!window.confirm('Supprimer ce dossier ?'))return;try{await opAPI.delete(id);toast.success('Supprimé');load()}catch{toast.error('Erreur')}}
   const handleSave=()=>{setShowForm(false);setEditing(null);load()}
   const handleEdit=(op)=>{setEditing(op);setViewing(null);setShowForm(true)}
 
@@ -752,9 +752,9 @@ export default function TracabilitePage() {
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Package size={24} className="text-primary-600"/> Tracabilite des Dechets
+            <Package size={24} className="text-primary-600"/> Traçabilité des Déchets
           </h1>
-          <p className="text-slate-500 text-sm mt-0.5">Suivi complet : enlevement → transport → destination finale → cloture</p>
+          <p className="text-slate-500 text-sm mt-0.5">Suivi complet : enlèvement → transport → destination finale → clôture</p>
           {isRecup&&user?.recuperateur_nom&&(
             <p className="text-primary-600 text-sm font-semibold mt-0.5 flex items-center gap-1"><Shield size={13}/>{user.recuperateur_nom}</p>
           )}
@@ -766,8 +766,8 @@ export default function TracabilitePage() {
         {[
           {label:'Total dossiers',value:stats.total,    color:'bg-primary-500',icon:Package      },
           {label:'En cours',      value:stats.enCours,  color:'bg-amber-500',  icon:Clock        },
-          {label:'Termines',      value:stats.termines, color:'bg-emerald-500',icon:CheckCircle2 },
-          {label:'Dechets SD/S',  value:stats.alerte,   color:'bg-red-500',    icon:AlertTriangle},
+          {label:'Terminés',      value:stats.termines, color:'bg-emerald-500',icon:CheckCircle2 },
+          {label:'Déchets SD/S',  value:stats.alerte,   color:'bg-red-500',    icon:AlertTriangle},
         ].map(k=>(
           <div key={k.label} className="card p-4 flex items-center gap-3">
             <div className={`w-10 h-10 rounded-xl ${k.color} flex items-center justify-center flex-shrink-0`}><k.icon size={18} className="text-white"/></div>
@@ -779,11 +779,11 @@ export default function TracabilitePage() {
       <div className="card p-4 flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-52">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="N° dossier, code dechet, generateur..." className="input pl-9 text-sm"/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="N° dossier, code déchet, générateur..." className="input pl-9 text-sm"/>
           {search&&<button onClick={()=>setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2"><X size={13} className="text-slate-400"/></button>}
         </div>
         <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
-          {[{k:'',l:'Tous'},{k:'EN_COURS',l:'En cours'},{k:'TERMINEE',l:'Termines'},{k:'ANNULE',l:'Annules'}].map(t=>(
+          {[{k:'',l:'Tous'},{k:'EN_COURS',l:'En cours'},{k:'TERMINEE',l:'Terminés'},{k:'ANNULE',l:'Annulés'}].map(t=>(
             <button key={t.k} onClick={()=>setStatut(t.k)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${statut===t.k?'bg-white dark:bg-slate-700 text-slate-900 shadow-sm':'text-slate-500'}`}>{t.l}</button>
           ))}
         </div>
@@ -792,9 +792,9 @@ export default function TracabilitePage() {
       {loading?<Spinner/>:operations.length===0?(
         <div className="card p-16 text-center">
           <Package size={40} className="mx-auto mb-3 text-slate-200"/>
-          <p className="font-semibold text-slate-400 text-lg">Aucun dossier de tracabilite</p>
-          <p className="text-sm text-slate-300 mt-1 mb-5">Creez votre premier dossier de suivi de dechet</p>
-          <button onClick={()=>{setEditing(null);setShowForm(true)}} className="btn-primary"><Plus size={15}/>Creer un dossier</button>
+          <p className="font-semibold text-slate-400 text-lg">Aucun dossier de traçabilité</p>
+          <p className="text-sm text-slate-300 mt-1 mb-5">Créez votre premier dossier de suivi de déchet</p>
+          <button onClick={()=>{setEditing(null);setShowForm(true)}} className="btn-primary"><Plus size={15}/>Créer un dossier</button>
         </div>
       ):(
         <div className="space-y-2">
@@ -803,7 +803,7 @@ export default function TracabilitePage() {
       )}
 
       <Modal open={showForm} onClose={()=>{setShowForm(false);setEditing(null)}}
-        title={editing?`Modifier dossier — ${editing.numero}`:'Nouveau dossier de tracabilite'} size="max-w-3xl">
+        title={editing?`Modifier dossier — ${editing.numero}`:'Nouveau dossier de traçabilité'} size="max-w-3xl">
         <TracabiliteForm operation={editing} lists={lists} currentUser={user} onSave={handleSave} onClose={()=>{setShowForm(false);setEditing(null)}}/>
       </Modal>
 
@@ -822,10 +822,10 @@ export default function TracabilitePage() {
               </div>
             </div>
             {[
-              ['Recuperateur',viewing.recuperateur_nom],['Generateur',viewing.generateur_nom],
-              ['Code dechet',viewing.code_dechet],['Designation',viewing.designation_dechet],
-              ['Classe',viewing.classe_dechet],['Quantite',`${viewing.quantite} ${viewing.unite_display||viewing.unite}`],
-              ['Date recuperation',viewing.date_recuperation],['Transporteur',viewing.transporteur_nom],
+              ['Récupérateur',viewing.recuperateur_nom],['Générateur',viewing.generateur_nom],
+              ['Code déchet',viewing.code_dechet],['Désignation',viewing.designation_dechet],
+              ['Classe',viewing.classe_dechet],['Quantité',`${viewing.quantite} ${viewing.unite_display||viewing.unite}`],
+              ['Date récupération',viewing.date_recuperation],['Transporteur',viewing.transporteur_nom],
               ['Chauffeur',viewing.chauffeur],['Immatriculation',viewing.immatriculation],
               ['Destination',DESTINATIONS.find(d=>d.key===viewing.destination_type)?.label],
               ['N° BSD',viewing.bsd_numero],['Observations',viewing.observations],

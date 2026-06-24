@@ -17,7 +17,7 @@ export default function DSDForm({ onClose, prefill = {} }) {
       statut:                user?.recuperateur_nom ? 'SARL' : '',
       denomination:          user?.recuperateur_nom || '',
       siege_social:          '',
-      domaine_activite:      'Collecte et recuperation de dechets speciaux dangereux',
+      domaine_activite:      'Collecte et récupération de déchets spéciaux dangereux',
       certification:         '',
       responsable_dechets:   `${user?.first_name || ''} ${user?.last_name || ''}`.trim(),
       code_dechet:           prefill.code_dechet          || '',
@@ -144,8 +144,8 @@ export default function DSDForm({ onClose, prefill = {} }) {
             <select {...register('consistance')} className="input">
               <option value="">--</option>
               <option>Solide</option><option>Liquide</option>
-              <option>Gazeux</option><option>Pateux</option>
-              <option>Liquide / Pateux</option>
+              <option>Gazeux</option><option>Pâteux</option>
+              <option>Liquide / Pâteux</option>
             </select>
           </F>
           <F label="Autres précisions (mélanges)" col="md:col-span-2">
@@ -167,7 +167,7 @@ export default function DSDForm({ onClose, prefill = {} }) {
             <input {...register('stockage_permanent_qte')} type="number" step="0.01" className="input" placeholder="0" />
           </F>
           <F label="Modalités de stockage" col="md:col-span-2">
-            <textarea {...register('modalites_stockage')} className="input" rows={2} placeholder="Futs metalliques, aire etanche..." />
+            <textarea {...register('modalites_stockage')} className="input" rows={2} placeholder="Fûts métalliques, aire étanche..." />
           </F>
         </div>
 
