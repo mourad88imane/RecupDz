@@ -338,7 +338,9 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
                     <option value="">-- Selectionner une designation --</option>
                     {designations.map(d => (
                       <option key={d.id} value={d.id}>
-                        {d.designation} {d.matiere ? `(${d.matiere})` : ''}
+                        {/* Déchets d'emballage (15.01.xx) : la matière est déjà dans le nom
+                            (ex: "Barquette PET"), pas besoin de la répéter entre parenthèses. */}
+                        {d.designation} {(d.matiere && !codeDechet.startsWith('15.01')) ? `(${d.matiere})` : ''}
                       </option>
                     ))}
                   </select>
@@ -346,6 +348,36 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
                 <input type="hidden" {...register('id_recup_dz')}/>
                 <input type="hidden" {...register('matiere_dechet')}/>
               </F>
+            )}
+
+            {codeDechet === '15.01.02' && (
+              <div className="grid grid-cols-2 gap-3">
+                <F label="Couleur">
+                  <select {...register('couleur')} className="input">
+                    <option value="">-- Selectionner --</option>
+                    <option value="TRANSPARENT">Transparent</option>
+                    <option value="BLANC">Blanc</option>
+                    <option value="NOIR">Noir</option>
+                    <option value="BLEU">Bleu</option>
+                    <option value="VERT">Vert</option>
+                    <option value="ROUGE">Rouge</option>
+                    <option value="JAUNE">Jaune</option>
+                    <option value="GRIS">Gris</option>
+                    <option value="MARRON">Marron</option>
+                    <option value="MULTICOLORE">Multicolore</option>
+                  </select>
+                </F>
+                <F label="Niveau de propreté">
+                  <select {...register('niveau_proprete')} className="input">
+                    <option value="">-- Selectionner --</option>
+                    <option value="TRES_PROPRE">Très propre</option>
+                    <option value="PROPRE">Propre</option>
+                    <option value="MOYENNEMENT_PROPRE">Moyennement propre</option>
+                    <option value="SALE">Sale</option>
+                    <option value="TRES_SALE">Très sale</option>
+                  </select>
+                </F>
+              </div>
             )}
             {classe&&(
               <div className="flex items-center gap-2">
@@ -753,6 +785,7 @@ export default function TracabilitePage() {
               ['Recuperateur',viewing.recuperateur_nom],['Generateur',viewing.generateur_nom],
               ['Code dechet',viewing.code_dechet],['Designation',viewing.designation_dechet],
               ['Classe',viewing.classe_dechet],['Quantite',`${viewing.quantite} ${viewing.unite_display||viewing.unite}`],
+              ['Couleur',viewing.couleur_display],['Niveau de proprete',viewing.niveau_proprete_display],
               ['Date recuperation',viewing.date_recuperation],['Transporteur',viewing.transporteur_nom],
               ['Chauffeur',viewing.chauffeur],['Immatriculation',viewing.immatriculation],
               ['Destination',DESTINATIONS.find(d=>d.key===viewing.destination_type)?.label],

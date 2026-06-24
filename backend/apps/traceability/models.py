@@ -20,6 +20,25 @@ class Traceability(models.Model):
         ('STOCKAGE',     'Stockage temporaire'),
         ('RECYCLAGE',    'Recyclage'),
     ]
+    COULEUR_CHOICES = [
+        ('TRANSPARENT', 'Transparent'),
+        ('BLANC',       'Blanc'),
+        ('NOIR',        'Noir'),
+        ('BLEU',        'Bleu'),
+        ('VERT',        'Vert'),
+        ('ROUGE',       'Rouge'),
+        ('JAUNE',       'Jaune'),
+        ('GRIS',        'Gris'),
+        ('MARRON',      'Marron'),
+        ('MULTICOLORE', 'Multicolore'),
+    ]
+    PROPRETE_CHOICES = [
+        ('TRES_PROPRE',         'Très propre'),
+        ('PROPRE',              'Propre'),
+        ('MOYENNEMENT_PROPRE',  'Moyennement propre'),
+        ('SALE',                'Sale'),
+        ('TRES_SALE',           'Très sale'),
+    ]
 
     # ── Numéro de dossier ─────────────────────────────────────────
     numero           = models.CharField(max_length=30, unique=True, blank=True)
@@ -49,6 +68,9 @@ class Traceability(models.Model):
     classe_dechet     = models.CharField(max_length=5, blank=True)
     unite             = models.CharField(max_length=10, choices=UNITE_CHOICES, default='KG')
     quantite          = models.DecimalField(max_digits=12, decimal_places=3)
+    # Spécifique aux plastiques (ex: code 15.01.02) — caractérisation visuelle du déchet.
+    couleur           = models.CharField(max_length=20, choices=COULEUR_CHOICES, blank=True)
+    niveau_proprete   = models.CharField(max_length=25, choices=PROPRETE_CHOICES, blank=True, verbose_name='Niveau de propreté')
 
     # ── Transporteur ──────────────────────────────────────────────
     transporteur      = models.ForeignKey(

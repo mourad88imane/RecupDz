@@ -117,7 +117,8 @@ class Command(BaseCommand):
         #     de la nomenclature sur plusieurs classes à la fois (S, SD, MA) ──
         noms_a_cocher = [
             'Chimique', 'Solvants', 'Traitement de surface',  # → SD
-            'Huiles', 'DEEE', 'Pneumatiques',                 # → S
+            'Piles', 'Médicaux et infectieux',                # → SD (agrément Gold)
+            'Huiles', 'DEEE', 'Pneumatiques', 'Peintures',    # → S
             'PET', 'PEHD', 'PP', 'Films',                     # → MA (emballage plastique)
             'Papier/carton', 'Verre', 'Alu', 'Acier',         # → MA (emballage autres matières)
             'Bois', 'Textile',                                # → MA (emballage bois / textile)
@@ -174,6 +175,51 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(
                 "⚠️  Aucune cascade configurée — vérifiez que `seed_specialisation` "
                 "et la mise à jour de `setup.py` (codes 15.01.xx) ont bien été lancés."
+            ))
+
+        # ── 6. Cascade "Déchets spéciaux et dangereux" — d'après l'agrément
+        #     SARL Gold Environment (décision n°87 du 11/09/2023). Les codes
+        #     déchets de l'agrément y sont listés en arabe avec une numérotation
+        #     décret propre (ex: 1.4.1), différente du code EWC standard utilisé
+        #     dans notre table Nomenclature (ex: 13.02.01). On relie donc chaque
+        #     détail de spécialisation déjà concerné par l'agrément (huiles,
+        #     solvants, peintures, produits chimiques, pneus, batteries, déchets
+        #     médicaux) à son code EWC officiel correspondant — identifié par la
+        #     désignation, pas par la numérotation décret (non fiable en l'état).
+        #     Couvre une partie de l'agrément ; DEEE, traitement de surface,
+        #     boues pétrolières et hydrocarbures répandus n'ont pas encore de
+        #     code EWC correspondant dans la table Nomenclature (à compléter
+        #     en Django Admin une fois les codes confirmés).
+        mapping_dangereux = [
+            ('Chimique',                '16.05.04'),  # Produits chimiques dangereux (dont périmés)
+            ('Solvants',                 '07.01.03'),  # Solvants halogénés organiques
+            ('Solvants',                 '07.01.04'),  # Autres solvants organiques
+            ('Peintures',                '08.01.11'),  # Déchets de peintures et vernis (solvants organiques)
+            ('Huiles',                   '13.01.01'),  # Huiles hydrauliques chlorées
+            ('Huiles',                   '13.01.09'),  # Huiles hydrauliques minérales chlorées
+            ('Huiles',                   '13.02.01'),  # Huiles moteur, boîte de vitesses, lubrification usagées
+            ('Huiles',                   '13.03.01'),  # Huiles isolantes et fluides caloporteurs contenant des PCB
+            ('Pneumatiques',             '16.01.03'),  # Pneus hors d'usage
+            ('Piles',                    '16.06.01'),  # Batteries au plomb
+            ('Piles',                    '16.06.02'),  # Batteries Ni-Cd
+            ('Médicaux et infectieux',   '18.01.03'),  # Déchets dont collecte/élimination font l'objet de prescriptions
+        ]
+        cascade_dangereux_ok = 0
+        for nom_detail, code in mapping_dangereux:
+            detail = DetailSpecialisation.objects.filter(nom=nom_detail).first()
+            code_obj = Nomenclature.objects.filter(code=code).first()
+            if detail and code_obj:
+                detail.codes_nomenclature.add(code_obj)
+                cascade_dangereux_ok += 1
+        if cascade_dangereux_ok:
+            self.stdout.write(self.style.SUCCESS(
+                f"✅ Cascade 'déchets spéciaux et dangereux' configurée : "
+                f"{cascade_dangereux_ok} lien(s) détail→code créés d'après l'agrément Gold"
+            ))
+        else:
+            self.stdout.write(self.style.WARNING(
+                "⚠️  Aucune cascade 'spéciaux/dangereux' configurée — vérifiez "
+                "que `seed_specialisation` a bien été lancé."
             ))
 
         self.stdout.write(self.style.SUCCESS(

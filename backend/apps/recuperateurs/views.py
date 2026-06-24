@@ -69,6 +69,13 @@ def mes_types_dechets(request):
     elif type_param:
         return Response({'sous_categories': []})
 
+    # Temporaire : seuls les détails effectivement liés à un code nomenclature
+    # sont exploitables dans la cascade (le reste n'a pas encore de codes
+    # configurés). Ça limite "Categorie de dechet" à "Déchets d'emballage"
+    # pour tous les comptes (récupérateur ET admin/super admin) jusqu'à ce
+    # que les autres catégories soient complétées.
+    assigned = assigned.filter(codes_nomenclature__isnull=False).distinct()
+
     detail_ids = set(assigned.values_list('id', flat=True))
     if not detail_ids:
         return Response({'sous_categories': []})

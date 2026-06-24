@@ -5,6 +5,8 @@ class TraceabilitySerializer(serializers.ModelSerializer):
     statut_display      = serializers.CharField(source='get_statut_display', read_only=True)
     unite_display       = serializers.CharField(source='get_unite_display', read_only=True)
     destination_display = serializers.CharField(source='get_destination_type_display', read_only=True)
+    couleur_display      = serializers.CharField(source='get_couleur_display', read_only=True)
+    niveau_proprete_display = serializers.CharField(source='get_niveau_proprete_display', read_only=True)
     necessite_bsd       = serializers.ReadOnlyField()
     # Nested names
     generateur_nom      = serializers.SerializerMethodField()
