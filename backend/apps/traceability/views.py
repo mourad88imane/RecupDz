@@ -5,6 +5,7 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Sum, Count
+from django.db.models.functions import TruncMonth
 from apps.accounts.permissions import ModulePermission
 from apps.accounts.models import AuditLog
 from .models import Traceability
@@ -55,10 +56,24 @@ class TraceabilityViewSet(viewsets.ModelViewSet):
         # filtres de période (date_recuperation, date_min/max, mois, annee) — voir
         # TraceabilityFilter — pour que les statistiques reflètent la période choisie.
         qs = self.filter_queryset(self.get_queryset())
+        evolution = (
+            qs.annotate(mois=TruncMonth('date_recuperation'))
+              .values('mois')
+              .annotate(quantite=Sum('quantite'), count=Count('id'))
+              .order_by('mois')
+        )
         return Response({
             'total':             qs.count(),
             'quantite_totale':   qs.aggregate(t=Sum('quantite'))['t'] or 0,
             'par_statut':        list(qs.values('statut').annotate(count=Count('id'))),
             'par_destination':   list(qs.values('destination_type').annotate(count=Count('id'))),
             'par_classe':        list(qs.values('classe_dechet').annotate(count=Count('id'))),
+            'evolution': [
+                {
+                    'mois': e['mois'].strftime('%Y-%m') if e['mois'] else '—',
+                    'quantite': float(e['quantite'] or 0),
+                    'count': e['count'],
+                }
+                for e in evolution
+            ],
         })

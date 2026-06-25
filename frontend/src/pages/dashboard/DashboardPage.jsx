@@ -1,30 +1,53 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Users, Package, FileText, AlertTriangle, CheckCircle2, Clock, XCircle, TrendingUp } from 'lucide-react'
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { recuperateursAPI } from '../../api'
+import { Package, FileText, AlertTriangle, TrendingUp } from 'lucide-react'
+import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import api, { recuperateursAPI } from '../../api'
+import { useAuthStore } from '../../store'
 
 const COLORS = ['#4F46E5','#10b981','#f59e0b','#ef4444','#8b5cf6','#14b8a6','#6b7280']
 
+const CLASSE_LABELS = {
+  D:  'Déchets ordinaires',
+  S:  'Déchets spéciaux',
+  SD: 'Déchets spéciaux dangereux',
+  MA: 'Ménagers et assimilés',
+  '': 'Non classé',
+}
+
+const MOIS_LABELS = [
+  'Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc',
+]
+
 export default function DashboardPage() {
-  const [stats,  setStats]  = useState(null)
-  const [alerts, setAlerts] = useState([])
+  const { user } = useAuthStore()
+  const [tracaStats,   setTracaStats]   = useState(null)
+  const [alerts,       setAlerts]       = useState([])
+
+  const titre = user?.recuperateur_nom || 'Tableau de bord'
+  const isRecup = user?.role === 'RECUPERATEUR'
 
   useEffect(() => {
-    recuperateursAPI.stats().then(r => setStats(r.data)).catch(() => {})
     recuperateursAPI.alerts().then(r => setAlerts(r.data.alerts || [])).catch(() => {})
+    const params = {}
+    if (isRecup && user?.recuperateur_id) params.recuperateur = user.recuperateur_id
+    api.get('/traceability/stats/', { params }).then(r => setTracaStats(r.data)).catch(() => {})
   }, [])
 
-  const TYPE_LABELS = {
-    CAT1: 'Sans agrément', CAT2: 'Déchets Spéciaux',
-    CAT3: 'Déchets SD',    CAT4: 'Carte Professionnelle'
-  }
+  const evolution = (tracaStats?.evolution || []).map(e => {
+    const [y, m] = e.mois.split('-')
+    return { ...e, label: `${MOIS_LABELS[Number(m) - 1] || m} ${y}` }
+  })
+  const parClasse = (tracaStats?.par_classe || []).map(c => ({
+    ...c,
+    label: CLASSE_LABELS[c.classe_dechet] || c.classe_dechet || 'Non classé',
+  }))
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Tableau de bord</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{titre}</h1>
         <p className="text-slate-500 text-sm mt-0.5">Système de gestion des récupérateurs de déchets — Algérie</p>
       </div>
 
@@ -39,78 +62,62 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* KPIs */}
-      {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Total récupérateurs', value: stats.total,      icon: Users,        color: 'bg-primary-500' },
-            { label: 'Actifs',              value: stats.actifs,     icon: CheckCircle2, color: 'bg-emerald-500' },
-            { label: 'Agréments expirant',  value: stats.expirant,   icon: Clock,        color: 'bg-amber-500'   },
-            { label: 'Agréments expirés',   value: stats.expires,    icon: XCircle,      color: 'bg-red-500'     },
-          ].map(k => (
-            <div key={k.label} className="card p-5 flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-xl ${k.color} flex items-center justify-center flex-shrink-0`}>
-                <k.icon size={22} className="text-white" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">{k.value ?? '—'}</p>
-                <p className="text-xs text-slate-500 leading-tight">{k.label}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Charts */}
-      {stats && (
+      {tracaStats && (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {/* By type */}
-          {stats.par_type?.length > 0 && (
-            <div className="card p-5">
-              <h3 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                <TrendingUp size={16} className="text-primary-600" /> Par catégorie
-              </h3>
+          {/* Évolution des déchets récupérés */}
+          <div className="card p-5">
+            <h3 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+              <TrendingUp size={16} className="text-primary-600" /> Évolution des déchets récupérés
+            </h3>
+            {evolution.length === 0 ? (
+              <p className="text-sm text-slate-400 text-center py-12">Aucune donnée pour le moment</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={evolution} margin={{ left: -10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="label" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip formatter={(v) => [`${v} kg`, 'Quantité']} />
+                  <Line type="monotone" dataKey="quantite" name="Quantité récupérée"
+                    stroke="#4F46E5" strokeWidth={2} dot={{ r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* Catégories / types de déchets récupérés */}
+          <div className="card p-5">
+            <h3 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+              <Package size={16} className="text-primary-600" /> Types de déchets récupérés
+            </h3>
+            {parClasse.length === 0 ? (
+              <p className="text-sm text-slate-400 text-center py-12">Aucune donnée pour le moment</p>
+            ) : (
               <div className="flex gap-4 items-center">
                 <ResponsiveContainer width="50%" height={180}>
                   <PieChart>
-                    <Pie data={stats.par_type} dataKey="count" cx="50%" cy="50%" outerRadius={70}
+                    <Pie data={parClasse} dataKey="count" cx="50%" cy="50%" outerRadius={70}
                       label={({ percent }) => `${(percent*100).toFixed(0)}%`} labelLine={false}>
-                      {stats.par_type.map((_,i) => <Cell key={i} fill={COLORS[i%COLORS.length]} />)}
+                      {parClasse.map((_,i) => <Cell key={i} fill={COLORS[i%COLORS.length]} />)}
                     </Pie>
-                    <Tooltip formatter={(v,n) => [v, TYPE_LABELS[n] || n]} />
+                    <Tooltip formatter={(v,n,p) => [v, p.payload.label]} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="flex-1 space-y-2">
-                  {stats.par_type.map((r, i) => (
-                    <div key={r.type_recuperateur} className="flex items-center justify-between">
+                  {parClasse.map((r, i) => (
+                    <div key={r.classe_dechet || i} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full" style={{ background: COLORS[i%COLORS.length] }} />
-                        <span className="text-xs text-slate-600">{TYPE_LABELS[r.type_recuperateur] || r.type_recuperateur}</span>
+                        <span className="text-xs text-slate-600">{r.label}</span>
                       </div>
                       <span className="text-xs font-bold">{r.count}</span>
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* By wilaya */}
-          {stats.par_wilaya?.length > 0 && (
-            <div className="card p-5">
-              <h3 className="font-bold text-slate-900 dark:text-white mb-4">Par wilaya</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={stats.par_wilaya.slice(0,10)} margin={{ bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="wilaya" tick={{ fontSize: 10 }}
-                    label={{ value: 'Wilaya', position: 'insideBottom', offset: -10, fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} />
-                  <Tooltip />
-                  <Bar dataKey="count" name="Récupérateurs" fill="#4F46E5" radius={[4,4,0,0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 
