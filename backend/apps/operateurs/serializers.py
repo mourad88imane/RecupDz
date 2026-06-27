@@ -18,6 +18,7 @@ class OperateurListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = Operateur
-        fields = ['id','type_operateur','type_display','raison_sociale','wilaya',
-                  'commune','telephone','email','num_agrement','date_fin_agrement',
-                  'statut','statut_display','agrement_valide','created_at']
+        fields = ['id','type_operateur','type_display','raison_sociale','nif','nis',
+                  'registre_commerce','adresse','wilaya','commune','telephone','email',
+                  'num_agrement','date_fin_agrement','statut','statut_display',
+                  'agrement_valide','created_at']

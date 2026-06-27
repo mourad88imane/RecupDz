@@ -36,6 +36,7 @@ const pvAPI = {
 }
 const recupAPI = { getAll: () => api.get('/recuperateurs/?page_size=200') }
 const tracaAPI = { getAll: (p) => api.get('/traceability/', { params: p }) }
+const eliminateurAPI = { getAll: () => api.get('/operateurs/?type_operateur=ELIMINATEUR&page_size=200') }
 
 const TABS = [
   { key:'bsd',      label:'BSD',      icon:FileText,      desc:'Bordereaux de Suivi des Déchets — documents de traçabilité obligatoires' },
@@ -617,7 +618,7 @@ function DSDForm({ dsd, recuperateurs, dossiers, currentUser, onSave, onClose })
 }
 
 // ── PV Form ───────────────────────────────────────────────────────────────────
-function PVForm({ pv, recuperateurs, dossiers, currentUser, onSave, onClose }) {
+function PVForm({ pv, recuperateurs, dossiers, eliminateurs, currentUser, onSave, onClose }) {
   const isEdit = !!pv?.id
   const { register, handleSubmit, watch, setValue, reset } = useForm({
     defaultValues: pv || {
@@ -630,6 +631,7 @@ function PVForm({ pv, recuperateurs, dossiers, currentUser, onSave, onClose }) {
   const [generating, setGenerating] = useState(false)
   const isRecup = currentUser?.role === 'RECUPERATEUR'
   const recuperateurId = watch('recuperateur')
+  const eliminateurId  = watch('eliminateur_id')
 
   useEffect(() => { if (pv) reset(pv) }, [pv])
 
@@ -643,12 +645,31 @@ function PVForm({ pv, recuperateurs, dossiers, currentUser, onSave, onClose }) {
     }
   }, [recuperateurId, recuperateurs])
 
+  // Renseigne automatiquement l'en-tête du PV à partir de l'opérateur Éliminateur
+  // sélectionné (fiche créée une seule fois dans la page Opérateurs et réutilisée ici).
+  const importerEliminateur = (op) => {
+    setValue('raison_sociale', op.raison_sociale || '')
+    setValue('agrement_exploitation', op.num_agrement || '')
+    setValue('adresse', op.adresse || '')
+    setValue('rc', op.registre_commerce || '')
+    setValue('nif', op.nif || '')
+    setValue('nis', op.nis || '')
+    setValue('telephone', op.telephone || '')
+  }
+
+  useEffect(() => {
+    if (!eliminateurId) return
+    const op = eliminateurs.find(x => String(x.id) === String(eliminateurId))
+    if (op) importerEliminateur(op)
+  }, [eliminateurId, eliminateurs])
+
   const importerDossier = (d) => {
     setValue('designation_dechet', d.designation_dechet || '')
     setValue('quantite', d.quantite || '')
     setValue('unite', d.unite_display || d.unite || '')
     setValue('generateur_nom', d.generateur_nom || '')
     if (!isRecup && d.recuperateur) setValue('recuperateur', d.recuperateur)
+    if (d.eliminateur) setValue('eliminateur_id', d.eliminateur)
     const note = `Dossier ${d.numero} — ${d.code_dechet} ${d.designation_dechet||''} (${d.quantite} ${d.unite_display||d.unite})`
     if (!watch('observations')) setValue('observations', note)
     toast.success(`Dossier ${d.numero} importé`)
@@ -691,6 +712,7 @@ function PVForm({ pv, recuperateurs, dossiers, currentUser, onSave, onClose }) {
         adresse:             watch('adresse'),
         rc:                  watch('rc'),
         nif:                 watch('nif'),
+        nis:                 watch('nis'),
         art:                 watch('art'),
         telephone:           watch('telephone'),
         site_incineration:   watch('site_incineration'),
@@ -771,8 +793,17 @@ function PVForm({ pv, recuperateurs, dossiers, currentUser, onSave, onClose }) {
 
       <div className="card p-4 space-y-3 border-l-4 border-slate-400">
         <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-          Installation d'incinération (en-tête du PV)
+          Installation d'incinération — Éliminateur (en-tête du PV)
         </p>
+        <F label="Éliminateur enregistré">
+          <select {...register('eliminateur_id')} className="input">
+            <option value="">-- Sélectionner un éliminateur (ou saisir manuellement ci-dessous) --</option>
+            {eliminateurs.map(op => <option key={op.id} value={op.id}>{op.raison_sociale}</option>)}
+          </select>
+          <p className="text-[10px] text-slate-400 mt-1">
+            Les informations sont reprises automatiquement de la fiche Opérateur. Modifiez-les ci-dessous si besoin.
+          </p>
+        </F>
         <div className="grid grid-cols-2 gap-3">
           <F label="Raison sociale"><input {...register('raison_sociale')} className="input"/></F>
           <F label="Agrément d'exploitation N°"><input {...register('agrement_exploitation')} className="input"/></F>
@@ -780,6 +811,7 @@ function PVForm({ pv, recuperateurs, dossiers, currentUser, onSave, onClose }) {
           <F label="Site d'incinération (si différent)"><input {...register('site_incineration')} className="input"/></F>
           <F label="RC"><input {...register('rc')} className="input"/></F>
           <F label="NIF"><input {...register('nif')} className="input"/></F>
+          <F label="NIS"><input {...register('nis')} className="input"/></F>
           <F label="ART"><input {...register('art')} className="input"/></F>
           <F label="Téléphone"><input {...register('telephone')} className="input"/></F>
         </div>
@@ -935,11 +967,13 @@ export default function DocumentsPage() {
   const [search,   setSearch]   = useState('')
   const [recuperateurs, setRecuperateurs] = useState([])
   const [dossiers,      setDossiers]      = useState([])
+  const [eliminateurs,  setEliminateurs]  = useState([])
 
   const isRecup = user?.role === 'RECUPERATEUR'
 
   useEffect(() => {
     recupAPI.getAll().then(r => setRecuperateurs(r.data.results||r.data)).catch(()=>{})
+    eliminateurAPI.getAll().then(r => setEliminateurs(r.data.results||r.data)).catch(()=>{})
     const p = { page_size: 200 }
     if (isRecup && user?.recuperateur_id) p.recuperateur = user.recuperateur_id
     tracaAPI.getAll(p).then(r => {
@@ -1103,7 +1137,7 @@ export default function DocumentsPage() {
             onSave={handleSave} onClose={()=>{setShowForm(false);setEditing(null)}}/>
         )}
         {(tab==='pv'||tab==='rapports') && (
-          <PVForm pv={editing} recuperateurs={recuperateurs} dossiers={dossiers} currentUser={user}
+          <PVForm pv={editing} recuperateurs={recuperateurs} dossiers={dossiers} eliminateurs={eliminateurs} currentUser={user}
             onSave={handleSave} onClose={()=>{setShowForm(false);setEditing(null)}}/>
         )}
       </Modal>
