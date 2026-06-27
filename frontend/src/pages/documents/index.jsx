@@ -629,10 +629,25 @@ function PVForm({ pv, recuperateurs, dossiers, currentUser, onSave, onClose }) {
   const [saving,     setSaving]     = useState(false)
   const [generating, setGenerating] = useState(false)
   const isRecup = currentUser?.role === 'RECUPERATEUR'
+  const recuperateurId = watch('recuperateur')
 
   useEffect(() => { if (pv) reset(pv) }, [pv])
 
+  // Renseigne automatiquement l'adresse et l'agrément du récupérateur sélectionné
+  useEffect(() => {
+    const r = recuperateurs.find(x => String(x.id) === String(recuperateurId))
+    if (r) {
+      setValue('recuperateur_adresse', [r.commune, r.wilaya ? `W.${r.wilaya}` : ''].filter(Boolean).join(', '))
+      setValue('recuperateur_agrement', r.agrement_actif?.numero_agrement || '')
+      setValue('recuperateur_agrement_date', r.agrement_actif?.date_delivrance || '')
+    }
+  }, [recuperateurId, recuperateurs])
+
   const importerDossier = (d) => {
+    setValue('designation_dechet', d.designation_dechet || '')
+    setValue('quantite', d.quantite || '')
+    setValue('unite', d.unite_display || d.unite || '')
+    setValue('generateur_nom', d.generateur_nom || '')
     if (!isRecup && d.recuperateur) setValue('recuperateur', d.recuperateur)
     const note = `Dossier ${d.numero} — ${d.code_dechet} ${d.designation_dechet||''} (${d.quantite} ${d.unite_display||d.unite})`
     if (!watch('observations')) setValue('observations', note)
@@ -653,6 +668,7 @@ function PVForm({ pv, recuperateurs, dossiers, currentUser, onSave, onClose }) {
   const downloadPdf = async () => {
     setGenerating(true)
     try {
+      const recup = recuperateurs.find(x => String(x.id) === String(watch('recuperateur')))
       const formData = {
         pv_numero:           watch('pv_numero'),
         type_inspection:     watch('type_inspection'),
@@ -661,11 +677,28 @@ function PVForm({ pv, recuperateurs, dossiers, currentUser, onSave, onClose }) {
         observations:        watch('observations'),
         actions_correctives: watch('actions_correctives'),
         recuperateur:        watch('recuperateur'),
+        recuperateur_nom:    isRecup ? currentUser?.recuperateur_nom : recup?.nom_raison_sociale,
+        recuperateur_adresse:      watch('recuperateur_adresse'),
+        recuperateur_agrement:     watch('recuperateur_agrement'),
+        recuperateur_agrement_date:watch('recuperateur_agrement_date'),
+        generateur_nom:      watch('generateur_nom'),
+        generateur_adresse:  watch('generateur_adresse'),
+        designation_dechet:  watch('designation_dechet'),
+        quantite:            watch('quantite'),
+        unite:               watch('unite'),
+        raison_sociale:      watch('raison_sociale'),
+        agrement_exploitation: watch('agrement_exploitation'),
+        adresse:             watch('adresse'),
+        rc:                  watch('rc'),
+        nif:                 watch('nif'),
+        art:                 watch('art'),
+        telephone:           watch('telephone'),
+        site_incineration:   watch('site_incineration'),
       }
       const res = await pvAPI.pdf(formData)
       const url = window.URL.createObjectURL(new Blob([res.data],{type:'application/pdf'}))
       const a   = document.createElement('a')
-      a.href = url; a.setAttribute('download', `PV_${formData.pv_numero||'controle'}.pdf`)
+      a.href = url; a.setAttribute('download', `PV_${formData.pv_numero||'incineration'}.pdf`)
       document.body.appendChild(a); a.click(); a.remove()
       window.URL.revokeObjectURL(url)
       toast.success('PV téléchargé !')
@@ -714,6 +747,44 @@ function PVForm({ pv, recuperateurs, dossiers, currentUser, onSave, onClose }) {
       </div>
       <F label="Observations"><textarea {...register('observations')} className="input" rows={3}/></F>
       <F label="Actions correctives"><textarea {...register('actions_correctives')} className="input" rows={2}/></F>
+
+      <div className="card p-4 space-y-3 border-l-4 border-amber-400">
+        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+          Procès-verbal d'incinération — déchet détruit
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <F label="Désignation du déchet">
+            <input {...register('designation_dechet')} className="input" placeholder="Désignation..."/>
+          </F>
+          <div className="grid grid-cols-2 gap-2">
+            <F label="Quantité"><input {...register('quantite')} className="input"/></F>
+            <F label="Unité"><input {...register('unite')} className="input" placeholder="kg, t..."/></F>
+          </div>
+          <F label="Générateur des déchets">
+            <input {...register('generateur_nom')} className="input" placeholder="Raison sociale du générateur"/>
+          </F>
+          <F label="Adresse du générateur">
+            <input {...register('generateur_adresse')} className="input" placeholder="Sise à..."/>
+          </F>
+        </div>
+      </div>
+
+      <div className="card p-4 space-y-3 border-l-4 border-slate-400">
+        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+          Installation d'incinération (en-tête du PV)
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <F label="Raison sociale"><input {...register('raison_sociale')} className="input"/></F>
+          <F label="Agrément d'exploitation N°"><input {...register('agrement_exploitation')} className="input"/></F>
+          <F label="Adresse"><input {...register('adresse')} className="input"/></F>
+          <F label="Site d'incinération (si différent)"><input {...register('site_incineration')} className="input"/></F>
+          <F label="RC"><input {...register('rc')} className="input"/></F>
+          <F label="NIF"><input {...register('nif')} className="input"/></F>
+          <F label="ART"><input {...register('art')} className="input"/></F>
+          <F label="Téléphone"><input {...register('telephone')} className="input"/></F>
+        </div>
+      </div>
+
       <div className="flex gap-3 pt-2 border-t border-[#E2E8F0]">
         <button type="submit" disabled={saving||generating} className="btn-primary">
           <Save size={15}/> {saving?'...':isEdit?'Mettre à jour':'Créer le PV'}

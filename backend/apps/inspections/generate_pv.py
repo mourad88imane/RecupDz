@@ -2,175 +2,138 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib import colors
-from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable)
-from reportlab.lib.enums import TA_CENTER
+from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle)
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 import io
 
+MOIS_FR = [
+    '', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+    'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+]
+
+DOTS = '.' * 45
+
+
+def _texte_date(date_str):
+    """Convertit une date ISO (YYYY-MM-DD) en 'le JJ du mois de MOIS AAAA'."""
+    if not date_str:
+        return DOTS, DOTS
+    try:
+        annee, mois, jour = str(date_str).split('-')[:3]
+        mois_nom = MOIS_FR[int(mois)]
+        return f"{int(jour)}", f"{mois_nom} {annee}"
+    except Exception:
+        return DOTS, DOTS
+
+
 def generate_pv_pdf(data: dict) -> bytes:
+    """
+    Procès-verbal d'incinération des Déchets Spéciaux (DS) / Déchets Spéciaux
+    Dangereux (DSD) — document officiel délivré par l'installation d'incinération
+    (éliminateur) certifiant la destruction des déchets remis par un récupérateur.
+    """
     buffer = io.BytesIO()
     BLACK = colors.black
-    DBLUE = colors.HexColor('#1a3a5c')
-    LBLUE = colors.HexColor('#dde8f0')
-    GRAY  = colors.HexColor('#cccccc')
-    WHITE = colors.white
-    COL   = 17*cm
 
-    TYPE_MAP = {
-        'ROUTINE': 'Controle de routine',
-        'SURPRISE': 'Controle inopine',
-        'PLAINTE': 'Suite a plainte',
-        'SUIVI': 'Controle de suivi',
-    }
-    RESULTAT_MAP = {
-        'CONFORME':     'CONFORME',
-        'NON_CONFORME': 'NON CONFORME',
-        'EN_COURS':     "EN COURS D'EXAMEN",
-    }
-    RESULTAT_COLOR = {
-        'CONFORME':     colors.HexColor('#1a5c2e'),
-        'NON_CONFORME': colors.HexColor('#cc2200'),
-        'EN_COURS':     colors.HexColor('#5c4a1a'),
-    }
+    def st(name, **kw):
+        return ParagraphStyle(name, **kw)
 
-    resultat  = data.get('resultat', '')
-    res_label = RESULTAT_MAP.get(resultat, resultat)
-    res_color = RESULTAT_COLOR.get(resultat, DBLUE)
+    TITLE  = st('TITLE',  fontName='Helvetica-Bold', fontSize=11, alignment=TA_CENTER, leading=14)
+    OBJET  = st('OBJET',  fontName='Helvetica-Bold', fontSize=9.5, leading=13)
+    LABEL  = st('LABEL',  fontName='Helvetica', fontSize=9.5, leading=16)
+    BODY   = st('BODY',   fontName='Helvetica', fontSize=9.5, leading=15, alignment=TA_JUSTIFY)
+    TH     = st('TH',     fontName='Helvetica-Bold', fontSize=9, leading=12)
+    TD     = st('TD',     fontName='Helvetica', fontSize=9, leading=12)
 
-    def st(name, **kw): return ParagraphStyle(name, **kw)
-    T  = st('T',  fontName='Helvetica-Bold', fontSize=11, alignment=TA_CENTER, textColor=DBLUE, leading=14)
-    T2 = st('T2', fontName='Helvetica-Bold', fontSize=9,  alignment=TA_CENTER, textColor=DBLUE, leading=12)
-    SH = st('SH', fontName='Helvetica-Bold', fontSize=8,  textColor=WHITE, leading=11)
-    SH2= st('SH2',fontName='Helvetica-Bold', fontSize=8,  textColor=WHITE, leading=11, alignment=TA_CENTER)
-    LB = st('LB', fontName='Helvetica-Bold', fontSize=7.5, textColor=DBLUE, leading=10)
-    VL = st('VL', fontName='Helvetica',      fontSize=7.5, textColor=BLACK, leading=10)
-    VLH= st('VLH',fontName='Helvetica',      fontSize=7.5, textColor=BLACK, leading=20)
-    FT = st('FT', fontName='Helvetica',      fontSize=6,  textColor=GRAY,  alignment=TA_CENTER, leading=8)
+    def remplir(valeur):
+        v = str(valeur).strip() if valeur else ''
+        return DOTS if not v else f"<b>{v}</b>"
 
-    def sec_hdr(txt):
-        t = Table([[Paragraph(txt, SH)]], colWidths=[COL])
-        t.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,-1),DBLUE),
-            ('TOPPADDING',(0,0),(-1,-1),6),('BOTTOMPADDING',(0,0),(-1,-1),6),
-            ('LEFTPADDING',(0,0),(-1,-1),10)]))
-        return t
-
-    def frow(label, value, h=4):
-        val = str(value) if value is not None else ''
-        t = Table([[Paragraph(label, LB), Paragraph(val, VL)]], colWidths=[5*cm, 12*cm])
-        t.setStyle(TableStyle([('LINEBELOW',(0,0),(-1,-1),0.25,GRAY),
-            ('TOPPADDING',(0,0),(-1,-1),h),('BOTTOMPADDING',(0,0),(-1,-1),h),
-            ('LEFTPADDING',(0,0),(-1,-1),8),('VALIGN',(0,0),(-1,-1),'TOP')]))
-        return t
-
-    def drow(l1, v1, l2, v2):
-        v1 = str(v1) if v1 is not None else ''
-        v2 = str(v2) if v2 is not None else ''
-        t = Table([[Paragraph(l1,LB),Paragraph(v1,VL),Paragraph(l2,LB),Paragraph(v2,VL)]],
-                  colWidths=[3.8*cm,4.7*cm,3.8*cm,4.7*cm])
-        t.setStyle(TableStyle([('LINEBELOW',(0,0),(-1,-1),0.25,GRAY),
-            ('LINEAFTER',(1,0),(1,-1),0.4,GRAY),
-            ('TOPPADDING',(0,0),(-1,-1),4),('BOTTOMPADDING',(0,0),(-1,-1),4),
-            ('LEFTPADDING',(0,0),(-1,-1),8),('VALIGN',(0,0),(-1,-1),'TOP')]))
-        return t
-
-    def bbox(rows):
-        t = Table([[r] for r in rows], colWidths=[COL])
-        t.setStyle(TableStyle([('BOX',(0,0),(-1,-1),0.6,DBLUE),
-            ('TOPPADDING',(0,0),(-1,-1),0),('BOTTOMPADDING',(0,0),(-1,-1),0),
-            ('LEFTPADDING',(0,0),(-1,-1),0),('RIGHTPADDING',(0,0),(-1,-1),0)]))
-        return t
+    def champ(label, valeur, suite=''):
+        return Paragraph(f"{label} {remplir(valeur)}{suite}", LABEL)
 
     doc = SimpleDocTemplate(buffer, pagesize=A4,
-        topMargin=1.0*cm, bottomMargin=1.0*cm, leftMargin=2.0*cm, rightMargin=2.0*cm)
+        topMargin=2*cm, bottomMargin=2*cm, leftMargin=2.5*cm, rightMargin=2.5*cm)
     story = []
 
-    nh = Table([[Paragraph('REPUBLIQUE ALGERIENNE DEMOCRATIQUE ET POPULAIRE', T)]], colWidths=[COL])
-    nh.setStyle(TableStyle([('LINEBELOW',(0,0),(-1,-1),2.5,DBLUE),('BOTTOMPADDING',(0,0),(-1,-1),6)]))
-    story.append(nh)
-    story.append(Spacer(1,3))
-    story.append(Paragraph('PROCES-VERBAL DE CONTROLE ENVIRONNEMENTAL', T2))
+    # ── En-tête — identité de l'installation d'incinération ──────────────────
+    story.append(champ('Raison Sociale', data.get('raison_sociale')))
+    story.append(Spacer(1, 6))
+    story.append(champ("Agrément d'exploitation N° :", data.get('agrement_exploitation')))
+    story.append(Spacer(1, 6))
+    story.append(champ('Adresse :', data.get('adresse')))
+    story.append(Spacer(1, 6))
+    story.append(champ('RC :', data.get('rc')))
+    story.append(Spacer(1, 6))
+    story.append(champ('NIF :', data.get('nif')))
+    story.append(Spacer(1, 6))
+    story.append(champ('ART :', data.get('art')))
+    story.append(Spacer(1, 6))
+    story.append(champ('Téléphone :', data.get('telephone')))
+    story.append(Spacer(1, 18))
+
     story.append(Paragraph(
-        'Controle de la gestion des dechets speciaux dangereux',
-        st('ref', fontName='Helvetica', fontSize=6.5, alignment=TA_CENTER, textColor=GRAY, spaceAfter=5)))
+        'Objet : Incinération des Déchets Spéciaux (DS) / Déchets Spéciaux Dangereux (DSD)', OBJET))
+    story.append(Spacer(1, 14))
 
-    nd = Table([[
-        Paragraph(f'N° PV : <b>{data.get("pv_numero","")}</b>', VL),
-        Paragraph(f'Date : <b>{data.get("date_inspection","")}</b>', VL),
-        Paragraph(f'Type : <b>{TYPE_MAP.get(data.get("type_inspection",""), data.get("type_inspection",""))}</b>', VL),
-    ]], colWidths=[5.67*cm]*3)
-    nd.setStyle(TableStyle([('BOX',(0,0),(-1,-1),0.6,DBLUE),('BACKGROUND',(0,0),(-1,-1),LBLUE),
-        ('INNERGRID',(0,0),(-1,-1),0.3,GRAY),('TOPPADDING',(0,0),(-1,-1),5),
-        ('BOTTOMPADDING',(0,0),(-1,-1),5),('LEFTPADDING',(0,0),(-1,-1),12)]))
-    story.append(nd)
-    story.append(Spacer(1,5))
-
-    if res_label:
-        res_style = ParagraphStyle('RS', fontName='Helvetica-Bold', fontSize=14,
-                                   textColor=res_color, alignment=TA_CENTER, leading=18)
-        res_table = Table([[Paragraph(f'RESULTAT : {res_label}', res_style)]], colWidths=[COL])
-        res_table.setStyle(TableStyle([
-            ('BOX',(0,0),(-1,-1),1.5,res_color),
-            ('TOPPADDING',(0,0),(-1,-1),10),('BOTTOMPADDING',(0,0),(-1,-1),10),
-        ]))
-        story.append(res_table)
-        story.append(Spacer(1,5))
-
-    recup_nom = data.get('recuperateur_nom', '')
-    if not recup_nom:
-        recup_raw = data.get('recuperateur', '')
-        if isinstance(recup_raw, dict):
-            recup_nom = recup_raw.get('nom_raison_sociale', '')
-        elif recup_raw:
-            recup_nom = str(recup_raw)
-
-    delai = data.get('delai_regularisation', '')
-    if delai:
-        delai = str(delai)
-
-    story.append(sec_hdr('ETABLISSEMENT CONTROLE'))
-    story.append(bbox([
-        frow('Recuperateur :', recup_nom, h=5),
-        drow('Type de controle :', TYPE_MAP.get(data.get('type_inspection',''), data.get('type_inspection','')),
-             'N° PV :', data.get('pv_numero','')),
-        drow('Date du controle :', data.get('date_inspection',''),
-             'Delai de regularisation :', delai),
-    ]))
-    story.append(Spacer(1,5))
-
-    story.append(sec_hdr('OBSERVATIONS ET CONSTATS'))
-    story.append(bbox([frow('Observations :', data.get('observations',''), h=6)]))
-    story.append(Spacer(1,5))
-
-    story.append(sec_hdr('ACTIONS CORRECTIVES'))
-    story.append(bbox([frow('Actions correctives requises :', data.get('actions_correctives',''), h=6)]))
-    story.append(Spacer(1,10))
-
-    story.append(sec_hdr('SIGNATURES'))
-    story.append(Spacer(1,4))
-    sigs = Table([
-        [Paragraph("L'INSPECTEUR", SH2), Paragraph("LE RESPONSABLE DE L'ETABLISSEMENT", SH2)],
-        [Paragraph('Nom et qualite :', LB), Paragraph('Nom et qualite :', LB)],
-        [Paragraph('', VLH), Paragraph('', VLH)],
-        [Paragraph('Signature et cachet :', LB), Paragraph('Signature et cachet :', LB)],
-        [Paragraph('', VLH), Paragraph('', VLH)],
-        [Paragraph('', VLH), Paragraph('', VLH)],
-    ], colWidths=[8.5*cm, 8.5*cm])
-    sigs.setStyle(TableStyle([
-        ('BOX',(0,0),(-1,-1),0.6,DBLUE),
-        ('BACKGROUND',(0,0),(1,0),DBLUE),
-        ('LINEAFTER',(0,0),(0,-1),0.4,GRAY),
-        ('INNERGRID',(0,1),(-1,-1),0.2,GRAY),
-        ('TOPPADDING',(0,0),(-1,-1),5),('BOTTOMPADDING',(0,0),(-1,-1),5),
-        ('LEFTPADDING',(0,0),(-1,-1),8),
-        ('VALIGN',(0,0),(-1,-1),'TOP'),
-    ]))
-    story.append(sigs)
-
-    story.append(Spacer(1,10))
-    story.append(HRFlowable(width='100%', thickness=0.5, color=DBLUE))
+    pv_numero = data.get('pv_numero') or DOTS
     story.append(Paragraph(
-        'Loi n°01-19 du 12 decembre 2001 relative a la gestion, au controle et a l\'elimination des dechets — '
-        'Decret executif n°05-315 du 10 septembre 2005.',
-        FT))
+        f"Procès-verbal d'incinération n° <b>{pv_numero}</b> du <b>{data.get('date_inspection') or DOTS}</b>",
+        TITLE))
+    story.append(Spacer(1, 16))
+
+    jour, mois_annee = _texte_date(data.get('date_inspection'))
+    societe = data.get('raison_sociale') or DOTS
+    site    = data.get('site_incineration') or data.get('adresse') or DOTS
+    story.append(Paragraph(
+        f"L'an deux mille, le {jour} du mois de {mois_annee}, il a été procédé par "
+        f"la société : {societe} sur son site d'incinération situé à : {site}",
+        BODY))
+    story.append(Spacer(1, 12))
+
+    story.append(Paragraph(
+        'à la destruction par procédé d\'incinération des déchets suivants :', BODY))
+    story.append(Spacer(1, 8))
+
+    dechets = data.get('dechets') or [{
+        'designation': data.get('designation_dechet') or data.get('designation') or '',
+        'quantite':    data.get('quantite') or '',
+    }]
+    rows = [[Paragraph('Désignation', TH), Paragraph('Quantité', TH)]]
+    for d in dechets:
+        rows.append([Paragraph(str(d.get('designation') or ''), TD), Paragraph(str(d.get('quantite') or ''), TD)])
+    table = Table(rows, colWidths=[11*cm, 4*cm])
+    table.setStyle(TableStyle([
+        ('GRID', (0, 0), (-1, -1), 0.6, BLACK),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    story.append(table)
+    story.append(Spacer(1, 16))
+
+    qte_totale = data.get('quantite_totale')
+    if not qte_totale and data.get('quantite'):
+        qte_totale = f"{data.get('quantite')} {data.get('unite_display') or data.get('unite') or ''}".strip()
+    story.append(champ('Une quantité totale de', qte_totale, suite=f" récupérée par {remplir(data.get('recuperateur_nom'))}"))
+    story.append(Spacer(1, 6))
+    story.append(champ('Sise :', data.get('recuperateur_adresse')))
+    story.append(Spacer(1, 6))
+    story.append(champ('Agrément n°', data.get('recuperateur_agrement'), suite=f" du {remplir(data.get('recuperateur_agrement_date'))}"))
+    story.append(Spacer(1, 14))
+
+    story.append(champ('Les déchets proviennent de :', data.get('generateur_nom')))
+    story.append(Spacer(1, 6))
+    story.append(champ('sise', data.get('generateur_adresse')))
+    story.append(Spacer(1, 18))
+
+    story.append(Paragraph(
+        'Nous certifions que les déchets susmentionnés ont été intégralement détruits '
+        'par incinération conformément à la réglementation en vigueur et aux '
+        'prescriptions techniques de notre installation.', BODY))
+    story.append(Spacer(1, 10))
+    story.append(Paragraph(
+        'Le présent procès-verbal est établi pour servir et valoir ce que de droit.', BODY))
 
     doc.build(story)
     buffer.seek(0)
