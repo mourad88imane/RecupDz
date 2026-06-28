@@ -216,14 +216,26 @@ function BSDForm({ bsd, recuperateurs, dossiers, currentUser, onSave, onClose })
     numero:               bsd?.numero || '',
     generateur_nom:       watch('generateur_nom'),
     generateur_adresse:   watch('generateur_adresse'),
+    bon_commande:         watch('bon_commande'),
+    site_enlevement:      watch('site_enlevement'),
+    generateur_tel:       watch('generateur_tel'),
+    generateur_fax:       watch('generateur_fax'),
     code_dechet:          codeDechet || watch('code_dechet'),
     designation:          watch('designation'),
     classe:               watch('classe'),
+    etat_physique:        watch('etat_physique'),
+    autres_precision:     watch('autres_precision'),
     quantite:             watch('quantite'),
     unite:                watch('unite'),
     emballage:            watch('emballage'),
+    recuperateur_nom:     isRecup ? currentUser?.recuperateur_nom : recuperateurs.find(r=>String(r.id)===String(watch('recuperateur')))?.nom_raison_sociale,
+    recuperateur_adresse: watch('recuperateur_adresse'),
+    responsable:          watch('responsable'),
+    representant:         watch('representant'),
+    fonction:             watch('fonction'),
     transporteur_nom:     watch('transporteur_nom'),
     transporteur_vehicule:watch('transporteur_vehicule'),
+    immatriculation:      watch('immatriculation'),
     recepteur_nom:        watch('recepteur_nom'),
     type_traitement:      watch('type_traitement'),
     date_emission:        watch('date_emission'),
@@ -285,13 +297,28 @@ function BSDForm({ bsd, recuperateurs, dossiers, currentUser, onSave, onClose })
         </F>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
-        <F label="Générateur / Producteur" req>
-          <input {...register('generateur_nom',{required:true})} className="input" placeholder="Nom du générateur"/>
-        </F>
-        <F label="Adresse générateur">
-          <input {...register('generateur_adresse')} className="input" placeholder="Adresse..."/>
-        </F>
+      <div className="card p-4 space-y-3">
+        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">1. Générateur de déchet</p>
+        <div className="grid grid-cols-2 gap-3">
+          <F label="Générateur / Producteur" req>
+            <input {...register('generateur_nom',{required:true})} className="input" placeholder="Nom du générateur"/>
+          </F>
+          <F label="Adresse générateur (siège social)">
+            <input {...register('generateur_adresse')} className="input" placeholder="Adresse..."/>
+          </F>
+          <F label="Bon de commande">
+            <input {...register('bon_commande')} className="input"/>
+          </F>
+          <F label="Site d'enlèvement (si différent)">
+            <input {...register('site_enlevement')} className="input"/>
+          </F>
+          <F label="Téléphone">
+            <input {...register('generateur_tel')} className="input"/>
+          </F>
+          <F label="Fax">
+            <input {...register('generateur_fax')} className="input"/>
+          </F>
+        </div>
       </div>
 
       <F label="Code déchet (S ou SD)" req>
@@ -312,6 +339,31 @@ function BSDForm({ bsd, recuperateurs, dossiers, currentUser, onSave, onClose })
       </F>
 
       <div className="grid grid-cols-2 gap-3">
+        <F label="État physique">
+          <select {...register('etat_physique')} className="input">
+            <option value="">--</option>
+            <option value="SOLIDE">Solide</option>
+            <option value="LIQUIDE">Liquide</option>
+            <option value="PATEUX">Pâteux</option>
+            <option value="GAZEUX">Gazeux</option>
+          </select>
+        </F>
+        <F label="Mode de stockage">
+          <select {...register('emballage')} className="input">
+            <option value="">--</option>
+            <option value="FUT">Fût</option>
+            <option value="BIG_BAG">Big Bag</option>
+            <option value="CAISSE_BOIS">Caisse Bois</option>
+            <option value="VRAC_PALETTE">Vrac/palette</option>
+          </select>
+        </F>
+      </div>
+
+      <F label="Autres précisions">
+        <input {...register('autres_precision')} className="input"/>
+      </F>
+
+      <div className="grid grid-cols-2 gap-3">
         <F label="Quantité" req>
           <input {...register('quantite',{required:true})} type="number" step="0.001" className="input"/>
         </F>
@@ -325,21 +377,33 @@ function BSDForm({ bsd, recuperateurs, dossiers, currentUser, onSave, onClose })
         </F>
       </div>
 
-      <F label="Emballage / Conditionnement">
-        <input {...register('emballage')} className="input" placeholder="Fûts, bacs, sacs..."/>
-      </F>
-
-      <div className="grid grid-cols-2 gap-3">
-        <F label="Transporteur">
-          <input {...register('transporteur_nom')} className="input"/>
-        </F>
-        <F label="Véhicule">
-          <input {...register('transporteur_vehicule')} className="input" placeholder="Immatriculation..."/>
-        </F>
+      <div className="card p-4 space-y-3">
+        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">2. Collecteur — Transporteur</p>
+        <div className="grid grid-cols-2 gap-3">
+          <F label="Transporteur (si différent du récupérateur)">
+            <input {...register('transporteur_nom')} className="input"/>
+          </F>
+          <F label="Siège social du collecteur">
+            <input {...register('recuperateur_adresse')} className="input"/>
+          </F>
+          <F label="Responsable">
+            <input {...register('responsable')} className="input"/>
+          </F>
+          <div className="grid grid-cols-2 gap-2">
+            <F label="Représentant"><input {...register('representant')} className="input"/></F>
+            <F label="Fonction"><input {...register('fonction')} className="input"/></F>
+          </div>
+          <F label="Moyen de transport">
+            <input {...register('transporteur_vehicule')} className="input" placeholder="Camion, benne..."/>
+          </F>
+          <F label="Matricule (immatriculation)">
+            <input {...register('immatriculation')} className="input"/>
+          </F>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <F label="Destinataire / Récepteur">
+        <F label="Destinataire / Récepteur (installation de destination)">
           <input {...register('recepteur_nom')} className="input"/>
         </F>
         <F label="Type de traitement">
