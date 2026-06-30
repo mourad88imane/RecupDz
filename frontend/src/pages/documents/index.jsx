@@ -67,20 +67,6 @@ const BL_ST = {
   VALIDE:    { label:'Validé',    badge:'badge-green',  icon:CheckCircle2 },
   ARCHIVE:   { label:'Archivé',   badge:'badge-gray',   icon:XCircle      },
 }
-const QUALITE_CRITERES = [
-  { key:'chauffeur', label:'Chauffeur' },
-  { key:'sgt',        label:'SGT' },
-  { key:'maraicher',  label:'Maraîcher' },
-  { key:'bacher',     label:'Bacher' },
-  { key:'proprete',   label:'Propreté' },
-]
-const BL_MARCHANDISES = [
-  { designation:'Cartons déchets',        reference:'REBUTS_CARTONS' },
-  { designation:'Ceinture carton Rebut',  reference:'CEINCAR_REB'    },
-  { designation:'Les Saches Usagées',     reference:'SACHE-USE'      },
-  { designation:'BigBag',                 reference:'COMBIGBAG'      },
-]
-const BL_CONDITIONNEMENTS = ['Kilogramme de 1', 'Unité de 1', 'Tonne de 1', 'Litre de 1']
 const BSD_ST = {
   BROUILLON:   { label:'Brouillon',   badge:'badge-gray',   icon:Clock        },
   EMIS:        { label:'Émis',        badge:'badge-blue',   icon:FileText     },
@@ -210,10 +196,7 @@ function BLForm({ bl, currentUser, onSave, onClose }) {
       statut: 'BROUILLON',
       destinataire_type: 'ELIMINATEUR',
       date_livraison: new Date().toISOString().split('T')[0],
-      lignes: [{ designation:'', reference:'', conditionnement:'', qte_box:'', qte_preforme:'' }],
-      qualite: {},
-      garantie_alimentaire: false,
-      etabli_par: `${currentUser?.first_name||''} ${currentUser?.last_name||''}`.trim(),
+      lignes: [{ description:'', quantite:'', unite:'KG', stockage:'' }],
     }
   })
   const { fields, append, remove } = useFieldArray({ control, name: 'lignes' })
@@ -241,19 +224,12 @@ function BLForm({ bl, currentUser, onSave, onClose }) {
 
   const buildBlData = () => ({
     numero:                 bl?.numero || '',
-    recuperateur_nom:       currentUser?.recuperateur_nom,
+    recuperateur:           bl?.recuperateur || currentUser?.recuperateur_id,
     destinataire_type:      watch('destinataire_type'),
-    destinataire_type_display: watch('destinataire_type')==='VALORISATEUR' ? 'Valorisateur de déchets' : 'Éliminateur de déchets',
-    destinataire_nom:       destinataires.find(d=>String(d.id)===String(watch('destinataire')))?.raison_sociale,
+    destinataire:           watch('destinataire'),
     date_livraison:         watch('date_livraison'),
-    bon_commande_numero:    watch('bon_commande_numero'),
-    date_commande:          watch('date_commande'),
     lignes:                 watch('lignes'),
-    etabli_par:             watch('etabli_par'),
-    qualite:                watch('qualite'),
-    garantie_alimentaire:   watch('garantie_alimentaire'),
     chauffeur_nom:          watch('chauffeur_nom'),
-    camion_numero:          watch('camion_numero'),
     camion_immatriculation: watch('camion_immatriculation'),
     statut:                 watch('statut'),
   })
@@ -318,59 +294,39 @@ function BLForm({ bl, currentUser, onSave, onClose }) {
         </F>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <F label="Date de livraison" req>
-          <DateInput value={watch('date_livraison')||''} onChange={v=>setValue('date_livraison',v)}/>
-        </F>
-        <F label="Bon de commande N°">
-          <input {...register('bon_commande_numero')} className="input"/>
-        </F>
-        <F label="Date de commande">
-          <DateInput value={watch('date_commande')||''} onChange={v=>setValue('date_commande',v)}/>
-        </F>
-      </div>
+      <F label="Date de livraison" req>
+        <DateInput value={watch('date_livraison')||''} onChange={v=>setValue('date_livraison',v)}/>
+      </F>
 
       <div className="card p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Désignation des marchandises</p>
-          <button type="button" onClick={()=>append({ designation:'', reference:'', conditionnement:'', qte_box:'', qte_preforme:'' })}
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Description (Nature des déchets)</p>
+          <button type="button" onClick={()=>append({ description:'', quantite:'', unite:'KG', stockage:'' })}
             className="text-xs font-semibold text-primary-600 hover:underline">+ Ajouter une ligne</button>
         </div>
         {fields.map((f, i) => (
           <div key={f.id} className="grid grid-cols-12 gap-2 items-end">
-            <div className="col-span-4">
-              {i===0 && <label className="label text-[10px]">Désignation</label>}
-              <select {...register(`lignes.${i}.designation`)} className="input"
-                onChange={e => {
-                  setValue(`lignes.${i}.designation`, e.target.value)
-                  const m = BL_MARCHANDISES.find(m => m.designation === e.target.value)
-                  if (m) setValue(`lignes.${i}.reference`, m.reference)
-                }}>
-                <option value="">-- Sélectionner --</option>
-                {BL_MARCHANDISES.map(m => <option key={m.designation} value={m.designation}>{m.designation}</option>)}
-              </select>
+            <div className="col-span-5">
+              {i===0 && <label className="label text-[10px]">Description</label>}
+              <input {...register(`lignes.${i}.description`)} className="input" placeholder="Plastique PET..."/>
             </div>
-            <div className="col-span-3">
-              {i===0 && <label className="label text-[10px]">Référence</label>}
-              <select {...register(`lignes.${i}.reference`)} className="input">
-                <option value="">-- Sélectionner --</option>
-                {BL_MARCHANDISES.map(m => <option key={m.reference} value={m.reference}>{m.reference}</option>)}
+            <div className="col-span-2">
+              {i===0 && <label className="label text-[10px]">Quantité</label>}
+              <input {...register(`lignes.${i}.quantite`)} className="input" type="number"/>
+            </div>
+            <div className="col-span-2">
+              {i===0 && <label className="label text-[10px]">Unité</label>}
+              <select {...register(`lignes.${i}.unite`)} className="input">
+                <option value="KG">KG</option>
+                <option value="TONNE">Tonne</option>
+                <option value="M3">m³</option>
+                <option value="LITRE">Litre</option>
+                <option value="UNITE">Unité</option>
               </select>
             </div>
             <div className="col-span-2">
-              {i===0 && <label className="label text-[10px]">Conditionnement</label>}
-              <select {...register(`lignes.${i}.conditionnement`)} className="input">
-                <option value="">-- Sélectionner --</option>
-                {BL_CONDITIONNEMENTS.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div className="col-span-1">
-              {i===0 && <label className="label text-[10px]">Qté Box</label>}
-              <input {...register(`lignes.${i}.qte_box`)} className="input" type="number"/>
-            </div>
-            <div className="col-span-1">
-              {i===0 && <label className="label text-[10px]">Qté Préf.</label>}
-              <input {...register(`lignes.${i}.qte_preforme`)} className="input" type="number"/>
+              {i===0 && <label className="label text-[10px]">Stockage</label>}
+              <input {...register(`lignes.${i}.stockage`)} className="input" placeholder="Ibc, Fût..."/>
             </div>
             <div className="col-span-1">
               {fields.length>1 && (
@@ -383,39 +339,11 @@ function BLForm({ bl, currentUser, onSave, onClose }) {
         ))}
       </div>
 
-      <F label="Établi par (magasinier)">
-        <input {...register('etabli_par')} className="input"/>
-      </F>
-
       <div className="card p-4 space-y-3">
-        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Qualité</p>
-        <div className="grid grid-cols-5 gap-2 text-center">
-          {QUALITE_CRITERES.map(c => (
-            <div key={c.key} className="space-y-1">
-              <p className="text-[10px] font-semibold text-slate-500">{c.label}</p>
-              <div className="flex flex-col gap-1 items-center">
-                <label className="flex items-center gap-1 text-[10px]">
-                  <input type="radio" value="OK" {...register(`qualite.${c.key}`)} /> OK
-                </label>
-                <label className="flex items-center gap-1 text-[10px]">
-                  <input type="radio" value="NON" {...register(`qualite.${c.key}`)} /> Non
-                </label>
-              </div>
-            </div>
-          ))}
-        </div>
-        <label className="flex items-center gap-2 text-xs text-slate-600">
-          <input type="checkbox" {...register('garantie_alimentaire')} />
-          Garantie pour une aptitude au contact alimentaire
-        </label>
-      </div>
-
-      <div className="card p-4 space-y-3">
-        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Visa de Chauffeur</p>
-        <div className="grid grid-cols-3 gap-3">
-          <F label="Chauffeur"><input {...register('chauffeur_nom')} className="input"/></F>
-          <F label="Camion"><input {...register('camion_numero')} className="input"/></F>
-          <F label="Immatriculation"><input {...register('camion_immatriculation')} className="input"/></F>
+        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Chauffeur</p>
+        <div className="grid grid-cols-2 gap-3">
+          <F label="Nom de chauffeur"><input {...register('chauffeur_nom')} className="input"/></F>
+          <F label="Immatriculation de camion"><input {...register('camion_immatriculation')} className="input"/></F>
         </div>
       </div>
 

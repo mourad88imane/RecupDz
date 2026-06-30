@@ -457,6 +457,7 @@ export default function ProfilPage() {
   const [communes,    setCommunes]    = useState([])
   const [savingUser,  setSavingUser]  = useState(false)
   const [savingRec,   setSavingRec]   = useState(false)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
   const [agrement,    setAgrement]    = useState(null)
   const [hasAgrement, setHasAgrement] = useState(null)
   const [showAgrForm, setShowAgrForm] = useState(false)
@@ -527,6 +528,19 @@ export default function ProfilPage() {
       recForm.reset(r.data)
     } catch { toast.error('Erreur') }
     finally { setSavingRec(false) }
+  }
+
+  const uploadLogo = async (file) => {
+    if (!file) return
+    setUploadingLogo(true)
+    try {
+      const formData = new FormData()
+      formData.append('logo', file)
+      const r = await api.patch('/accounts/mon-recuperateur/', formData)
+      setRecup(r.data)
+      toast.success('Logo mis à jour')
+    } catch { toast.error('Erreur upload du logo') }
+    finally { setUploadingLogo(false) }
   }
 
   const onAgrementSaved = async () => {
@@ -635,6 +649,25 @@ export default function ProfilPage() {
               <strong>ℹ️</strong> Ces informations s'appliquent automatiquement à toutes vos opérations, déclarations et documents.
             </p>
           </div>
+
+          <div className="flex items-center gap-4 mb-5 pb-5 border-b border-[#E2E8F0]">
+            <div className="w-16 h-16 rounded-xl border border-[#E2E8F0] dark:border-[#2B3D1E] flex items-center justify-center overflow-hidden bg-slate-50 flex-shrink-0">
+              {recup?.logo
+                ? <img src={recup.logo} alt="Logo" className="w-full h-full object-contain"/>
+                : <Building2 size={22} className="text-slate-300"/>
+              }
+            </div>
+            <div>
+              <label className="label mb-1">Logo de l'entreprise</label>
+              <label className="btn-secondary btn-sm cursor-pointer inline-flex">
+                {uploadingLogo ? 'Envoi...' : 'Choisir un fichier'}
+                <input type="file" accept="image/*" className="hidden" disabled={uploadingLogo}
+                  onChange={e => uploadLogo(e.target.files?.[0])}/>
+              </label>
+              <p className="text-[11px] text-slate-400 mt-1">Utilisé dans les documents PDF (BL, BSD...)</p>
+            </div>
+          </div>
+
           <form onSubmit={recForm.handleSubmit(onSaveRec)} className="space-y-5">
             {/* Identification */}
             <div className="space-y-3">
@@ -655,10 +688,11 @@ export default function ProfilPage() {
                   </select>
                 </F>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-4 gap-3">
                 <F label="NIF"><input {...recForm.register('nif')} className="input" placeholder="NIF"/></F>
                 <F label="NIS"><input {...recForm.register('nis')} className="input" placeholder="NIS"/></F>
                 <F label="RC"><input {...recForm.register('registre_commerce')} className="input" placeholder="RC/..."/></F>
+                <F label="N° Article (NA)"><input {...recForm.register('numero_article')} className="input" placeholder="NA"/></F>
               </div>
             </div>
 

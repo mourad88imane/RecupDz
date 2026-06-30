@@ -36,12 +36,14 @@ class Recuperateur(models.Model):
     type_recuperateur  = models.CharField(max_length=20, choices=TYPE_CHOICES)
     statut_juridique   = models.CharField(max_length=15, choices=STATUT_JURIDIQUE, blank=True)
 
+    logo               = models.ImageField(upload_to='recuperateurs/logos/', blank=True, null=True)
     nom_raison_sociale = models.CharField(max_length=300)
     nom_commercial     = models.CharField(max_length=300, blank=True)
     responsable        = models.CharField(max_length=200)
     registre_commerce  = models.CharField(max_length=100, blank=True)
     nif                = models.CharField(max_length=50, blank=True)
     nis                = models.CharField(max_length=50, blank=True)
+    numero_article     = models.CharField(max_length=50, blank=True, verbose_name="N° Article (NA)")
     num_carte_pro      = models.CharField(max_length=100, blank=True)
 
     adresse            = models.TextField(blank=True)

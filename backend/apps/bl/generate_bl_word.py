@@ -1,83 +1,79 @@
 """
-Génération du document Word (.docx) du Bon de Livraison (BL).
-Contenu équivalent au PDF, présenté de façon simple et imprimable sous Word.
+Génération du document Word (.docx) du Bon de Livraison (BL), équivalent au
+PDF : en-tête entreprise, client, tableau des déchets, chauffeur, signature.
 """
 import io
 from docx import Document
 from docx.shared import Pt, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
-
-def _section(doc, texte):
-    p = doc.add_paragraph()
-    run = p.add_run(texte)
-    run.bold = True
-    run.font.size = Pt(12)
-
-
-def _champ(doc, label, valeur):
-    p = doc.add_paragraph()
-    r1 = p.add_run(f"{label} : ")
-    r1.bold = True
-    p.add_run(str(valeur) if valeur else '—')
+from .generate_bl import _recuperateur_info, _destinataire_info
 
 
 def generate_bl_docx(data: dict) -> bytes:
+    rec  = _recuperateur_info(data)
+    dest = _destinataire_info(data)
+
     doc = Document()
-    doc.add_heading('BON DE LIVRAISON', level=1).alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    if rec['logo_path']:
+        try:
+            doc.add_picture(rec['logo_path'], width=Cm(2.2))
+        except Exception:
+            pass
+
+    nom_p = doc.add_paragraph()
+    nom_run = nom_p.add_run(rec['nom'].upper())
+    nom_run.bold = True
+    nom_run.italic = True
+    nom_run.font.size = Pt(16)
+
+    if rec['agrement_num']:
+        doc.add_paragraph(f"Agrément N° {rec['agrement_num']} du {rec['agrement_date']}")
+    adresse_ligne = ' '.join(filter(None, [rec['adresse'], rec['code_postal']]))
+    if adresse_ligne:
+        doc.add_paragraph(adresse_ligne)
+    doc.add_paragraph(f"RC {rec['rc']}\tNIF {rec['nif']}")
+    doc.add_paragraph(f"NA {rec['na']}\tNIS {rec['nis']}")
 
     doc.add_paragraph()
-    _champ(doc, 'N° Bon de livraison', data.get('numero'))
-    _champ(doc, 'Date de livraison', data.get('date_livraison'))
-    _champ(doc, 'Bon de commande N°', data.get('bon_commande_numero'))
-    _champ(doc, 'Date de commande', data.get('date_commande'))
-    _champ(doc, 'Statut', data.get('statut_display') or data.get('statut'))
+    lieu_date = doc.add_paragraph(f"{rec['commune']} le : {data.get('date_livraison','')}")
+    lieu_date.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
     doc.add_paragraph()
-    _section(doc, 'Émetteur')
-    _champ(doc, 'Récupérateur', data.get('recuperateur_nom'))
+    doc.add_paragraph(f"Nom de Client : {dest['nom']}")
+    doc.add_paragraph(f"Adresse : {dest['adresse']}")
 
     doc.add_paragraph()
-    _section(doc, f"Destinataire ({data.get('destinataire_type_display') or data.get('destinataire_type','')})")
-    _champ(doc, 'Raison sociale', data.get('destinataire_nom'))
+    titre = doc.add_heading('Bon de livraison', level=2)
+    titre.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     doc.add_paragraph()
-    _section(doc, 'Désignation des marchandises')
+    lignes = data.get('lignes') or []
     table = doc.add_table(rows=1, cols=5)
     table.style = 'Table Grid'
     hdr = table.rows[0].cells
-    for i, h in enumerate(['Désignation', 'Référence', 'Conditionnement', 'Qté Box', 'Qté Préforme']):
+    for i, h in enumerate(['N°', 'Description (Nature des déchets)', 'Quantités', 'Unités', 'Stockage']):
         hdr[i].text = h
-    for ligne in (data.get('lignes') or []):
+    for i, l in enumerate(lignes, start=1):
         row = table.add_row().cells
-        row[0].text = str(ligne.get('designation', ''))
-        row[1].text = str(ligne.get('reference', ''))
-        row[2].text = str(ligne.get('conditionnement', ''))
-        row[3].text = str(ligne.get('qte_box', ''))
-        row[4].text = str(ligne.get('qte_preforme', ''))
+        row[0].text = str(i)
+        row[1].text = str(l.get('description', ''))
+        row[2].text = str(l.get('quantite', ''))
+        row[3].text = str(l.get('unite', 'KG'))
+        row[4].text = str(l.get('stockage', ''))
 
     doc.add_paragraph()
-    _section(doc, 'Établi par')
-    _champ(doc, 'Magasinier', data.get('etabli_par'))
+    doc.add_paragraph(f"Nom de chauffeur : {data.get('chauffeur_nom','')}")
+    doc.add_paragraph(f"Immatriculation de camion : {data.get('camion_immatriculation','')}")
 
     doc.add_paragraph()
-    _section(doc, 'Qualité')
-    qualite = data.get('qualite') or {}
-    for cle, lbl in [('chauffeur','Chauffeur'), ('sgt','SGT'), ('maraicher','Maraîcher'),
-                      ('bacher','Bacher'), ('proprete','Propreté')]:
-        _champ(doc, lbl, qualite.get(cle))
-    _champ(doc, 'Garantie aptitude au contact alimentaire', 'Oui' if data.get('garantie_alimentaire') else 'Non')
-
     doc.add_paragraph()
-    _section(doc, 'Visa de Chauffeur')
-    _champ(doc, 'Chauffeur', data.get('chauffeur_nom'))
-    _champ(doc, 'Camion', data.get('camion_numero'))
-    _champ(doc, 'Immatriculation', data.get('camion_immatriculation'))
-
-    if data.get('observations'):
-        doc.add_paragraph()
-        _section(doc, 'Observations')
-        doc.add_paragraph(data.get('observations'))
+    gerant = doc.add_paragraph('Le Gérant')
+    gerant.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    if rec['responsable']:
+        resp = doc.add_paragraph(rec['responsable'])
+        resp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
     for section in doc.sections:
         section.left_margin = Cm(2)

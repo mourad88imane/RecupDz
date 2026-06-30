@@ -16,7 +16,6 @@ class BonLivraison(models.Model):
         ('VALIDE',    'Validé'),
         ('ARCHIVE',   'Archivé'),
     ]
-    QUALITE_CRITERES = ['chauffeur', 'sgt', 'maraicher', 'bacher', 'proprete']
 
     numero               = models.CharField(max_length=30, unique=True, blank=True)
     recuperateur         = models.ForeignKey('recuperateurs.Recuperateur', on_delete=models.PROTECT,
@@ -26,20 +25,12 @@ class BonLivraison(models.Model):
                                               related_name='bons_livraison_recus')
 
     date_livraison        = models.DateField()
-    bon_commande_numero   = models.CharField(max_length=50, blank=True)
-    date_commande         = models.DateField(null=True, blank=True)
 
-    # Lignes : [{designation, reference, conditionnement, qte_box, qte_preforme}, ...]
+    # Lignes : [{description, quantite, unite, stockage}, ...]
     lignes               = models.JSONField(default=list, blank=True)
 
-    etabli_par           = models.CharField(max_length=200, blank=True)
-    # Qualité : {critere: 'OK' | 'NON'} pour chaque clé de QUALITE_CRITERES
-    qualite              = models.JSONField(default=dict, blank=True)
-    garantie_alimentaire = models.BooleanField(default=False)
-
-    chauffeur_nom         = models.CharField(max_length=200, blank=True)
-    camion_numero         = models.CharField(max_length=50, blank=True)
-    camion_immatriculation= models.CharField(max_length=50, blank=True)
+    chauffeur_nom          = models.CharField(max_length=200, blank=True)
+    camion_immatriculation = models.CharField(max_length=50, blank=True)
 
     statut               = models.CharField(max_length=15, choices=STATUT_CHOICES, default='BROUILLON')
     observations         = models.TextField(blank=True)
