@@ -6,34 +6,34 @@ from django.http import HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
 import django_filters
 from apps.accounts.permissions import ModulePermission
-from .models import BonLivraison
-from .serializers import BLSerializer
-from .generate_bl import generate_bl_pdf
-from .generate_bl_word import generate_bl_docx
+from .models import BonCommande
+from .serializers import BCSerializer
+from .generate_bc import generate_bc_pdf
+from .generate_bc_word import generate_bc_docx
 
 WORD_CT = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
 
-class BLFilter(django_filters.FilterSet):
-    date_min = django_filters.DateFilter(field_name='date_livraison', lookup_expr='gte')
-    date_max = django_filters.DateFilter(field_name='date_livraison', lookup_expr='lte')
+class BCFilter(django_filters.FilterSet):
+    date_min = django_filters.DateFilter(field_name='date_commande', lookup_expr='gte')
+    date_max = django_filters.DateFilter(field_name='date_commande', lookup_expr='lte')
 
     class Meta:
-        model  = BonLivraison
-        fields = ['recuperateur', 'statut', 'destinataire_type', 'date_livraison']
+        model  = BonCommande
+        fields = ['recuperateur', 'statut', 'date_commande']
 
 
-class BLViewSet(viewsets.ModelViewSet):
-    module_label     = 'bl'
+class BCViewSet(viewsets.ModelViewSet):
+    module_label       = 'bc'
     permission_classes = [ModulePermission]
-    queryset = BonLivraison.objects.select_related('recuperateur', 'destinataire').all()
-    serializer_class = BLSerializer
-    filter_backends  = [filters.SearchFilter, DjangoFilterBackend]
-    search_fields    = ['numero', 'destinataire__raison_sociale']
-    filterset_class  = BLFilter
+    queryset           = BonCommande.objects.select_related('recuperateur').all()
+    serializer_class   = BCSerializer
+    filter_backends    = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields      = ['numero', 'client_nom']
+    filterset_class    = BCFilter
 
     def get_queryset(self):
-        qs = BonLivraison.objects.select_related('recuperateur', 'destinataire').all()
+        qs   = BonCommande.objects.select_related('recuperateur').all()
         user = self.request.user
         if user.is_superuser or user.has_role('SUPERADMIN', 'ADMIN'):
             return qs
@@ -49,24 +49,24 @@ class BLViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def generer_pdf(self, request, pk=None):
-        bl = self.get_object()
-        data = BLSerializer(bl).data
+        bc   = self.get_object()
+        data = BCSerializer(bc).data
         try:
-            pdf  = generate_bl_pdf(data)
+            pdf  = generate_bc_pdf(data)
             resp = HttpResponse(pdf, content_type='application/pdf')
-            resp['Content-Disposition'] = f'attachment; filename="BL_{bl.numero}.pdf"'
+            resp['Content-Disposition'] = f'attachment; filename="BC_{bc.numero}.pdf"'
             return resp
         except Exception as e:
             return Response({'error': str(e)}, status=500)
 
     @action(detail=True, methods=['get'])
     def generer_word(self, request, pk=None):
-        bl = self.get_object()
-        data = BLSerializer(bl).data
+        bc   = self.get_object()
+        data = BCSerializer(bc).data
         try:
-            docx_bytes = generate_bl_docx(data)
+            docx_bytes = generate_bc_docx(data)
             resp = HttpResponse(docx_bytes, content_type=WORD_CT)
-            resp['Content-Disposition'] = f'attachment; filename="BL_{bl.numero}.docx"'
+            resp['Content-Disposition'] = f'attachment; filename="BC_{bc.numero}.docx"'
             return resp
         except Exception as e:
             return Response({'error': str(e)}, status=500)
@@ -74,12 +74,12 @@ class BLViewSet(viewsets.ModelViewSet):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def generate_bl(request):
+def generate_bc(request):
     try:
-        pdf  = generate_bl_pdf(request.data)
-        num  = request.data.get('numero', 'BL')[:30].replace(' ', '_')
+        pdf  = generate_bc_pdf(request.data)
+        num  = request.data.get('numero', 'BC')[:30].replace(' ', '_')
         resp = HttpResponse(pdf, content_type='application/pdf')
-        resp['Content-Disposition'] = f'attachment; filename="BL_{num}.pdf"'
+        resp['Content-Disposition'] = f'attachment; filename="BC_{num}.pdf"'
         return resp
     except Exception as e:
         return Response({'error': str(e)}, status=500)
@@ -87,12 +87,12 @@ def generate_bl(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def generate_bl_word(request):
+def generate_bc_word(request):
     try:
-        docx_bytes = generate_bl_docx(request.data)
-        num  = request.data.get('numero', 'BL')[:30].replace(' ', '_')
+        docx_bytes = generate_bc_docx(request.data)
+        num  = request.data.get('numero', 'BC')[:30].replace(' ', '_')
         resp = HttpResponse(docx_bytes, content_type=WORD_CT)
-        resp['Content-Disposition'] = f'attachment; filename="BL_{num}.docx"'
+        resp['Content-Disposition'] = f'attachment; filename="BC_{num}.docx"'
         return resp
     except Exception as e:
         return Response({'error': str(e)}, status=500)

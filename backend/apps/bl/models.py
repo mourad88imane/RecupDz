@@ -4,11 +4,14 @@ from django.conf import settings
 
 class BonLivraison(models.Model):
     """Bon de Livraison — émis par le récupérateur à destination d'un
-    éliminateur ou d'un valorisateur (jamais un générateur)."""
+    éliminateur, d'un valorisateur ou d'un Centre d'Enfouissement Technique (CET).
+    Les CET n'acceptent pas les déchets spéciaux (S) ni les déchets spéciaux
+    dangereux (SD/DSD) — uniquement les déchets ménagers et assimilés."""
 
     DESTINATAIRE_CHOICES = [
         ('ELIMINATEUR',  'Éliminateur de déchets'),
         ('VALORISATEUR', 'Valorisateur de déchets'),
+        ('CET',          "Centre d'Enfouissement Technique"),
     ]
     STATUT_CHOICES = [
         ('BROUILLON', 'Brouillon'),

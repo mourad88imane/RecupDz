@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'apps.administration',
     'apps.archive',
     'apps.ai_assistant',
+    'apps.bc',
 ]
 
 MIDDLEWARE = [

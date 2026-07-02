@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Calendar, CalendarRange, CalendarDays, CalendarClock, Package, Download, Loader2, AlertTriangle, Home } from 'lucide-react'
+import { Calendar, CalendarRange, CalendarDays, CalendarClock, Package, Download, Loader2, AlertTriangle, Home, Layers } from 'lucide-react'
 import api from '../../api'
 import DateInput from '../../components/common/DateInput'
 
@@ -84,6 +84,133 @@ function exportCsv(rows, nomFichier) {
   a.download = nomFichier
   a.click()
   URL.revokeObjectURL(url)
+}
+
+// ── Rubrique CET — quantités envoyées en Centre d'Enfouissement Technique ─────
+function RubriqueCET({ bls, loading }) {
+  const lignes = useMemo(() =>
+    bls.flatMap(bl =>
+      (bl.lignes || []).map(l => ({
+        ...l,
+        cet_nom:  bl.destinataire_nom || `CET${bl.destinataire_commune ? ' ' + bl.destinataire_commune : ''}`,
+        bl_num:   bl.numero,
+        date:     bl.date_livraison,
+      }))
+    )
+  , [bls])
+
+  const parCet = useMemo(() => {
+    const m = new Map()
+    lignes.forEach(l => {
+      const k = l.cet_nom
+      if (!m.has(k)) m.set(k, { total_kg: 0, total_t: 0, count: 0, lignes: [] })
+      const e = m.get(k)
+      e.lignes.push(l)
+      e.count++
+      if (l.unite === 'KG')    e.total_kg += Number(l.quantite || 0)
+      if (l.unite === 'TONNE') e.total_t  += Number(l.quantite || 0)
+    })
+    return Array.from(m.entries()).map(([nom, v]) => ({ nom, ...v }))
+  }, [lignes])
+
+  const totalLignes = lignes.length
+
+  const exportCetCsv = () => {
+    const hdr = ['CET','Désignation','Quantité','Unité','N° BL','Date livraison']
+    const rows = lignes.map(l => [l.cet_nom, l.description, l.quantite, l.unite, l.bl_num, l.date]
+      .map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(';'))
+    const csv = [hdr.join(';'), ...rows].join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url; a.download = 'statistiques_cet.csv'; a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  return (
+    <div className="card p-5 space-y-4 border-l-4 border-slate-400">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h2 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <Layers size={18} className="text-slate-500"/> Déchets envoyés au CET (Centre d'Enfouissement Technique)
+        </h2>
+        <button onClick={exportCetCsv} disabled={lignes.length===0} className="btn-secondary btn-sm">
+          <Download size={13}/> Exporter CSV
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="card p-3 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-slate-500 flex items-center justify-center flex-shrink-0">
+            <Package size={16} className="text-white"/>
+          </div>
+          <div>
+            <p className="text-xl font-black text-slate-900 dark:text-white">{bls.length}</p>
+            <p className="text-xs text-slate-500">BL émis vers CET</p>
+          </div>
+        </div>
+        <div className="card p-3 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-slate-500 flex items-center justify-center flex-shrink-0">
+            <Layers size={16} className="text-white"/>
+          </div>
+          <div>
+            <p className="text-xl font-black text-slate-900 dark:text-white">{totalLignes}</p>
+            <p className="text-xs text-slate-500">Ligne(s) de déchet</p>
+          </div>
+        </div>
+        {parCet.map(c => (
+          <div key={c.nom} className="card p-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-slate-400 flex items-center justify-center flex-shrink-0">
+              <Layers size={16} className="text-white"/>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{c.nom}</p>
+              <p className="text-xs text-slate-500">
+                {c.total_kg > 0 && `${c.total_kg.toLocaleString('fr-FR')} kg`}
+                {c.total_kg > 0 && c.total_t > 0 && ' / '}
+                {c.total_t > 0 && `${c.total_t.toLocaleString('fr-FR')} t`}
+                {c.total_kg === 0 && c.total_t === 0 && `${c.count} ligne(s)`}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-xl overflow-x-auto border border-[#E2E8F0] dark:border-[#2B3D1E]">
+        {loading ? (
+          <div className="flex justify-center py-12"><Loader2 className="w-7 h-7 text-slate-400 animate-spin"/></div>
+        ) : lignes.length === 0 ? (
+          <div className="p-10 text-center">
+            <Layers size={32} className="mx-auto mb-2 text-slate-200"/>
+            <p className="font-semibold text-slate-400 text-sm">Aucun BL CET pour cette période</p>
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[#E2E8F0] dark:border-[#2B3D1E] text-left bg-slate-50 dark:bg-[#16240D]/50">
+                <th className="px-4 py-2.5 font-semibold text-slate-500 text-xs uppercase">CET</th>
+                <th className="px-4 py-2.5 font-semibold text-slate-500 text-xs uppercase">Désignation des déchets</th>
+                <th className="px-4 py-2.5 font-semibold text-slate-500 text-xs uppercase">Quantité</th>
+                <th className="px-4 py-2.5 font-semibold text-slate-500 text-xs uppercase">N° BL</th>
+                <th className="px-4 py-2.5 font-semibold text-slate-500 text-xs uppercase">Date livraison</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lignes.map((l, idx) => (
+                <tr key={idx} className="border-b border-slate-50 dark:border-[#16240D] last:border-0 hover:bg-slate-50 dark:hover:bg-[#16240D]/50">
+                  <td className="px-4 py-2.5 font-medium text-slate-700 dark:text-slate-200">{l.cet_nom}</td>
+                  <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{l.description || '—'}</td>
+                  <td className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-200">
+                    {l.quantite ? `${Number(l.quantite).toLocaleString('fr-FR')} ${l.unite || 'KG'}` : '—'}
+                  </td>
+                  <td className="px-4 py-2.5 font-mono text-xs text-slate-500">{l.bl_num}</td>
+                  <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{l.date}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  )
 }
 
 // ── Rubrique (Spéciaux/SD ou Ménagers et assimilés) ───────────────────────────
@@ -193,9 +320,11 @@ export default function StatsPage() {
   const [mois,        setMois]        = useState(new Date().getMonth() + 1)
   const [annee,       setAnnee]       = useState(thisYear())
 
-  const [rows,    setRows]    = useState([])
-  const [loading, setLoading] = useState(false)
-  const [vue,     setVue]     = useState('TOUS')
+  const [rows,       setRows]       = useState([])
+  const [loading,    setLoading]    = useState(false)
+  const [vue,        setVue]        = useState('TOUS')
+  const [blsCet,     setBlsCet]     = useState([])
+  const [loadingCet, setLoadingCet] = useState(false)
 
   const rowsFiltrees = useMemo(() => {
     const destinations = DESTINATIONS_PAR_VUE[vue]
@@ -215,6 +344,21 @@ export default function StatsPage() {
     return p
   }
 
+  const buildBlCetParams = () => {
+    const p = { destinataire_type: 'CET', page_size: 500 }
+    if (periode === 'QUOTIDIENNE')      { p.date_livraison = today() }
+    else if (periode === 'PRECISE')     { p.date_livraison = datePrecise }
+    else if (periode === 'INTERVALLE')  { p.date_min = dateMin; p.date_max = dateMax }
+    else if (periode === 'MENSUELLE') {
+      const d = new Date(annee, mois - 1, 1)
+      p.date_min = d.toISOString().split('T')[0]
+      const last = new Date(annee, mois, 0)
+      p.date_max = last.toISOString().split('T')[0]
+    }
+    else if (periode === 'ANNUELLE') { p.date_min = `${annee}-01-01`; p.date_max = `${annee}-12-31` }
+    return p
+  }
+
   const load = async () => {
     setLoading(true)
     try {
@@ -229,7 +373,19 @@ export default function StatsPage() {
     }
   }
 
-  useEffect(() => { load() }, [periode, datePrecise, dateMin, dateMax, mois, annee])
+  const loadCet = async () => {
+    setLoadingCet(true)
+    try {
+      const res = await api.get('/bl/', { params: buildBlCetParams() })
+      setBlsCet(res.data.results || res.data)
+    } catch {
+      setBlsCet([])
+    } finally {
+      setLoadingCet(false)
+    }
+  }
+
+  useEffect(() => { load(); loadCet() }, [periode, datePrecise, dateMin, dateMax, mois, annee])
 
   return (
     <div className="space-y-5">
@@ -327,6 +483,9 @@ export default function StatsPage() {
         vue={vue}
         fichierCsv={`statistiques_dechets_menagers_${periode.toLowerCase()}.csv`}
       />
+
+      {/* Rubrique 3 — Déchets envoyés au CET */}
+      <RubriqueCET bls={blsCet} loading={loadingCet} />
     </div>
   )
 }

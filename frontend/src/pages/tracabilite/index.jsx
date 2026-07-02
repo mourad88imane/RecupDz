@@ -5,7 +5,7 @@ import {
   Truck, Factory, Flame, Recycle, AlertTriangle,
   FileText, Calendar, Shield, CheckCircle2, Clock,
   XCircle, Archive, ChevronRight, Warehouse, Leaf,
-  Zap, AlertCircle
+  Zap, AlertCircle, GitBranch, Scale
 } from 'lucide-react'
 import api from '../../api'
 import { useAuthStore } from '../../store'
@@ -28,10 +28,11 @@ const opListAPI = {
 }
 
 const DESTINATIONS = [
-  { key:'STOCKAGE',     label:'Stockage temporaire',         icon:Warehouse, color:'text-slate-600', bg:'bg-slate-50'  },
-  { key:'VALORISATION', label:'Valorisation / Recyclage',    icon:Recycle,   color:'text-teal-600',  bg:'bg-teal-50'   },
-  { key:'ELIMINATION',  label:'Élimination',                 icon:Flame,     color:'text-red-600',   bg:'bg-red-50'    },
-  { key:'CET',          label:"Centre d'Enfouissement (CET)",icon:Archive,   color:'text-amber-600', bg:'bg-amber-50'  },
+  { key:'STOCKAGE',     label:'Stockage temporaire',         icon:Warehouse,  color:'text-slate-600',  bg:'bg-slate-50'  },
+  { key:'VALORISATION', label:'Valorisation / Recyclage',    icon:Recycle,    color:'text-teal-600',   bg:'bg-teal-50'   },
+  { key:'ELIMINATION',  label:'Élimination',                 icon:Flame,      color:'text-red-600',    bg:'bg-red-50'    },
+  { key:'CET',          label:"Centre d'Enfouissement (CET)",icon:Archive,    color:'text-amber-600',  bg:'bg-amber-50'  },
+  { key:'MULTIPLE',     label:'Multi-destinations',          icon:GitBranch,  color:'text-purple-600', bg:'bg-purple-50' },
 ]
 
 const STATUT_CFG = {
@@ -63,6 +64,105 @@ function Modal({ open, onClose, title, children, size='max-w-3xl' }) {
   )
 }
 
+// ── Repartition Builder ───────────────────────────────────────────────────────
+const DEST_OPTIONS = [
+  { key:'VALORISATION', label:'Valorisation / Recyclage', icon:Recycle,  color:'text-teal-600',   bg:'bg-teal-50 border-teal-200'   },
+  { key:'ELIMINATION',  label:'Élimination',              icon:Flame,    color:'text-red-600',    bg:'bg-red-50 border-red-200'     },
+  { key:'CET',          label:"CET (Enfouissement)",      icon:Archive,  color:'text-amber-600',  bg:'bg-amber-50 border-amber-200' },
+  { key:'STOCKAGE',     label:'Stockage temporaire',      icon:Warehouse,color:'text-slate-600',  bg:'bg-slate-50 border-slate-200' },
+]
+
+function RepartitionBuilder({ quantiteTotale, unite, lists, value, onChange }) {
+  const getOps = (type) => {
+    if (type === 'VALORISATION') return lists.valorisateurs || []
+    if (type === 'ELIMINATION')  return lists.eliminateurs  || []
+    if (type === 'CET')          return lists.cet           || []
+    return []
+  }
+
+  const add = () => onChange([...value, { type:'VALORISATION', quantite:'', operateur:'', operateur_nom:'' }])
+  const remove = (i) => onChange(value.filter((_,idx) => idx !== i))
+  const update = (i, field, val) => {
+    const next = [...value]
+    next[i] = { ...next[i], [field]: val }
+    if (field === 'type') { next[i].operateur = ''; next[i].operateur_nom = '' }
+    if (field === 'operateur') {
+      const op = getOps(next[i].type).find(o => String(o.id) === String(val))
+      next[i].operateur_nom = op?.raison_sociale || ''
+    }
+    onChange(next)
+  }
+
+  const totalAffecte = value.reduce((s, l) => s + (parseFloat(l.quantite) || 0), 0)
+  const qte          = parseFloat(quantiteTotale) || 0
+  const restant      = qte - totalAffecte
+  const ok           = qte > 0 && Math.abs(restant) < 0.001
+
+  return (
+    <div className="space-y-3">
+      <div className={`flex items-center gap-3 p-3 rounded-xl border ${ok ? 'bg-emerald-50 border-emerald-200' : restant < 0 ? 'bg-red-50 border-red-300' : 'bg-amber-50 border-amber-200'}`}>
+        <Scale size={15} className={ok ? 'text-emerald-600' : restant < 0 ? 'text-red-600' : 'text-amber-600'} />
+        <div className="flex-1 text-sm">
+          <span className="font-bold">{totalAffecte.toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:3})} {unite}</span>
+          <span className="text-slate-400 mx-1">/</span>
+          <span className="font-semibold text-slate-600">{qte.toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:3})} {unite} récupérés</span>
+          {!ok && restant > 0 && <span className="ml-2 text-amber-700 text-xs font-semibold">— {restant.toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:3})} {unite} non affectés</span>}
+          {!ok && restant < 0 && <span className="ml-2 text-red-700 text-xs font-semibold">— Dépassement de {Math.abs(restant).toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:3})} {unite}</span>}
+        </div>
+        {ok && <CheckCircle2 size={15} className="text-emerald-600 flex-shrink-0"/>}
+      </div>
+
+      {value.map((ligne, i) => {
+        const cfg = DEST_OPTIONS.find(d => d.key === ligne.type) || DEST_OPTIONS[0]
+        const ops = getOps(ligne.type)
+        return (
+          <div key={i} className={`card p-3 border ${cfg.bg} space-y-2`}>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-400 w-5 text-center">{i+1}</span>
+              <select value={ligne.type} onChange={e => update(i,'type',e.target.value)}
+                className="input text-xs font-semibold flex-shrink-0 w-52">
+                {DEST_OPTIONS.map(d => <option key={d.key} value={d.key}>{d.label}</option>)}
+              </select>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <input type="number" step="0.001" min="0"
+                  value={ligne.quantite}
+                  onChange={e => update(i,'quantite',e.target.value)}
+                  placeholder="0.000"
+                  className="input text-xs w-28 text-right"/>
+                <span className="text-xs text-slate-400 flex-shrink-0">{unite}</span>
+              </div>
+              <button type="button" onClick={() => remove(i)}
+                className="btn-ghost p-1.5 text-red-400 hover:text-red-600 ml-auto flex-shrink-0">
+                <X size={13}/>
+              </button>
+            </div>
+            {ligne.type !== 'STOCKAGE' ? (
+              <div className="pl-7">
+                <select value={ligne.operateur} onChange={e => update(i,'operateur',e.target.value)}
+                  className="input text-xs w-full">
+                  <option value="">-- Sélectionner {cfg.label} --</option>
+                  {ops.map(o => <option key={o.id} value={o.id}>{o.raison_sociale}</option>)}
+                </select>
+              </div>
+            ) : (
+              <div className="pl-7">
+                <input value={ligne.operateur_nom || ''} onChange={e => update(i,'operateur_nom',e.target.value)}
+                  placeholder="Lieu de stockage (optionnel)..."
+                  className="input text-xs w-full"/>
+              </div>
+            )}
+          </div>
+        )
+      })}
+
+      <button type="button" onClick={add}
+        className="w-full border-2 border-dashed border-slate-300 rounded-xl p-3 text-xs font-semibold text-slate-500 hover:border-primary-400 hover:text-primary-600 hover:bg-primary-50 transition-all flex items-center justify-center gap-2">
+        <Plus size={14}/> Ajouter une destination
+      </button>
+    </div>
+  )
+}
+
 function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
   const isEdit = !!operation?.id
   const { register, handleSubmit, watch, setValue, reset } = useForm({
@@ -88,6 +188,20 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
   const [loadingDesignations, setLoadingDesignations] = useState(false)
   const [alertes,       setAlertes]       = useState([])
   const [etape,         setEtape]         = useState(1)
+
+  const initRepartitions = (op) => {
+    if (op?.repartitions?.length > 0) return op.repartitions
+    if (op?.destination_type && op.destination_type !== 'MULTIPLE') {
+      const line = { type: op.destination_type, quantite: op.quantite || '', operateur: '', operateur_nom: '' }
+      if (op.destination_type === 'VALORISATION' && op.valorisateur) { line.operateur = op.valorisateur; line.operateur_nom = op.valorisateur_nom || '' }
+      if (op.destination_type === 'ELIMINATION'  && op.eliminateur)  { line.operateur = op.eliminateur;  line.operateur_nom = op.eliminateur_nom  || '' }
+      if (op.destination_type === 'CET'          && op.cet)          { line.operateur = op.cet;          line.operateur_nom = op.cet_nom          || '' }
+      if (op.destination_type === 'STOCKAGE') { line.operateur_nom = op.lieu_stockage_final || '' }
+      return [line]
+    }
+    return []
+  }
+  const [repartitions, setRepartitions] = useState(() => initRepartitions(operation))
 
   // 4ème niveau de la cascade : une fois un code réglementaire choisi, charge
   // les désignations précises disponibles pour ce code (ex: code 15.01.02
@@ -150,11 +264,26 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
     if (isRecup && currentUser?.recuperateur_id) data.recuperateur = currentUser.recuperateur_id
     data.code_dechet   = codeDechet
     data.classe_dechet = classe
-    // Champs optionnels date/nombre du modèle : une chaîne vide fait échouer
-    // la validation Django (DateField/DecimalField n'acceptent pas '').
+
+    // Répartitions multi-destinations
+    if (repartitions.length > 0) {
+      data.repartitions    = repartitions
+      data.destination_type = repartitions.length === 1 ? repartitions[0].type : 'MULTIPLE'
+      // Setter les FK pour compatibilité avec les vues existantes
+      const valo = repartitions.find(r => r.type === 'VALORISATION')
+      const elim = repartitions.find(r => r.type === 'ELIMINATION')
+      const cet  = repartitions.find(r => r.type === 'CET')
+      data.valorisateur = valo?.operateur || null
+      data.eliminateur  = elim?.operateur || null
+      data.cet          = cet?.operateur  || null
+      data.quantite_enfouie = cet?.quantite || null
+    } else {
+      data.repartitions = []
+    }
+
     if (!data.date_livraison)   delete data.date_livraison
     if (!data.date_commande)    delete data.date_commande
-    if (!data.quantite_enfouie) delete data.quantite_enfouie
+    if (!data.quantite_enfouie && !data.quantite_enfouie !== 0) delete data.quantite_enfouie
     try {
       if (isEdit) { await opAPI.update(operation.id, data); toast.success('Dossier mis à jour') }
       else        { await opAPI.create(data);                toast.success('Dossier de traçabilité créé') }
@@ -560,7 +689,7 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1"><Package size={11}/> 4. Réception chez le destinataire</p>
             <div className="grid grid-cols-2 gap-3">
               <F label="N° BSD" col=""><input {...register('bsd_numero')} className="input" placeholder="BSD-2026-..."/></F>
-              <F label="Date et heure d'arrivée" col=""><DateInput value={watch('date_reception')||''} onChange={v=>setValue('date_reception',v)}/></F>
+              <F label="Date d'arrivée" col=""><DateInput value={watch('date_reception')||''} onChange={v=>setValue('date_reception',v)}/></F>
               <F label="Quantité acceptée" col=""><input {...register('quantite_acceptee')} type="number" step="0.001" className="input"/></F>
               <F label="Quantité refusée" col=""><input {...register('quantite_refusee')} type="number" step="0.001" className="input"/></F>
               <F label="Motif de refus" col="col-span-2"><input {...register('motif_refus')} className="input" placeholder="Motif (si applicable)..."/></F>
@@ -568,85 +697,24 @@ function TracabiliteForm({ operation, lists, currentUser, onSave, onClose }) {
           </div>
 
           <div className="card p-4 space-y-3">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">5. Destination finale — Type de traitement</p>
-            <div className="grid grid-cols-2 gap-2">
-              {DESTINATIONS.map(d=>(
-                <label key={d.key} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${destination===d.key?`border-primary-500 ${d.bg}`:'border-[#E2E8F0] hover:border-slate-300'}`}>
-                  <input type="radio" {...register('destination_type')} value={d.key} className="sr-only"/>
-                  <d.icon size={16} className={destination===d.key?d.color:'text-slate-400'}/>
-                  <span className={`text-xs font-semibold ${destination===d.key?d.color:'text-slate-500'}`}>{d.label}</span>
-                </label>
-              ))}
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+                <GitBranch size={11}/> 5. Répartition de la quantité récupérée
+              </p>
+              <span className="text-xs text-slate-400">
+                Total récupéré : <strong>{watch('quantite')||0} {watch('unite')||'KG'}</strong>
+              </span>
             </div>
-
-            {destination==='STOCKAGE'&&(
-              <div className="card p-3 bg-slate-50 space-y-2">
-                <p className="text-xs font-bold text-slate-500">Informations de stockage</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <F label="Lieu de stockage" col=""><input {...register('lieu_stockage_final')} className="input" placeholder="Dépôt..."/></F>
-                  <F label="Date de stockage" col=""><DateInput value={watch('date_stockage')||''} onChange={v=>setValue('date_stockage',v)}/></F>
-                  <F label="Quantité stockée" col=""><input {...register('quantite_stockee')} type="number" step="0.001" className="input"/></F>
-                  <F label="Date prévue de sortie" col=""><DateInput value={watch('date_sortie_prevue')||''} onChange={v=>setValue('date_sortie_prevue',v)}/></F>
-                </div>
-              </div>
-            )}
-
-            {destination==='VALORISATION'&&(
-              <div className="card p-3 bg-teal-50 space-y-2">
-                <p className="text-xs font-bold text-teal-700">Valorisation / Recyclage</p>
-                <F label="Valorisateur / Recycleur">
-                  <select {...register('valorisateur')} className="input">
-                    <option value="">-- Sélectionner --</option>
-                    {lists.valorisateurs.map(v=><option key={v.id} value={v.id}>{v.raison_sociale}</option>)}
-                  </select>
-                </F>
-                <div className="grid grid-cols-2 gap-3">
-                  <F label="Quantité reçue" col=""><input {...register('quantite_recue_valo')} type="number" step="0.001" className="input"/></F>
-                  <F label="Quantité valorisée" col=""><input {...register('quantite_valorisee')} type="number" step="0.001" className="input"/></F>
-                  <F label="Matière obtenue" col=""><input {...register('produit_obtenu')} className="input" placeholder="Matériau recyclé..."/></F>
-                  <F label="Taux de valorisation (%)" col=""><input {...register('taux_valorisation')} type="number" step="0.1" className="input" placeholder="99"/></F>
-                </div>
-              </div>
-            )}
-
-            {destination==='ELIMINATION'&&(
-              <div className="card p-3 bg-red-50 space-y-2">
-                <p className="text-xs font-bold text-red-700 flex items-center gap-1"><AlertTriangle size={11}/>Élimination — Vérification agrément obligatoire</p>
-                <F label="Éliminateur / Incinérateur">
-                  <select {...register('eliminateur')} className="input">
-                    <option value="">-- Sélectionner --</option>
-                    {lists.eliminateurs.map(e=><option key={e.id} value={e.id}>{e.raison_sociale}</option>)}
-                  </select>
-                </F>
-                <div className="grid grid-cols-2 gap-3">
-                  <F label="N° Agrément" col=""><input {...register('eliminateur_agrement')} className="input" placeholder="AGR-..."/></F>
-                  <F label="Statut agrément" col=""><select {...register('eliminateur_statut')} className="input"><option value="ACTIF">Actif</option><option value="EXPIRE">Expiré</option></select></F>
-                  <F label="Quantité reçue" col=""><input {...register('quantite_recue_elim')} type="number" step="0.001" className="input"/></F>
-                  <F label="Procédé d'élimination" col=""><input {...register('procede_elimination')} className="input" placeholder="Incinération..."/></F>
-                  <F label="Quantité éliminée" col=""><input {...register('quantite_eliminee')} type="number" step="0.001" className="input"/></F>
-                  <F label="Date de traitement" col=""><DateInput value={watch('date_traitement')||''} onChange={v=>setValue('date_traitement',v)}/></F>
-                  <F label="PV d'élimination" col="col-span-2"><input {...register('pv_elimination')} className="input" placeholder="N° PV..."/></F>
-                </div>
-              </div>
-            )}
-
-            {destination==='CET'&&(
-              <div className="card p-3 bg-amber-50 space-y-2">
-                <p className="text-xs font-bold text-amber-700">Centre d'Enfouissement Technique (CET)</p>
-                <F label="Centre CET">
-                  <select {...register('cet')} className="input">
-                    <option value="">-- Sélectionner --</option>
-                    {lists.cet.map(c=><option key={c.id} value={c.id}>{c.raison_sociale}</option>)}
-                  </select>
-                </F>
-                <div className="grid grid-cols-2 gap-3">
-                  <F label="Date de mise en décharge" col=""><DateInput value={watch('date_mise_decharge')||''} onChange={v=>setValue('date_mise_decharge',v)}/></F>
-                  <F label="Quantité reçue" col=""><input {...register('quantite_recue_cet')} type="number" step="0.001" className="input"/></F>
-                  <F label="Quantité enfouie" col=""><input {...register('quantite_enfouie')} type="number" step="0.001" className="input"/></F>
-                  <F label="Attestation de prise en charge" col=""><input {...register('attestation_cet')} className="input" placeholder="N° attestation..."/></F>
-                </div>
-              </div>
-            )}
+            <p className="text-xs text-slate-400">
+              Distribuez la quantité récupérée sur une ou plusieurs destinations. La somme des quantités affectées doit correspondre à la quantité totale récupérée.
+            </p>
+            <RepartitionBuilder
+              quantiteTotale={watch('quantite')}
+              unite={watch('unite')||'KG'}
+              lists={lists}
+              value={repartitions}
+              onChange={setRepartitions}
+            />
           </div>
           <div className="flex justify-between">
             <button type="button" onClick={()=>setEtape(2)} className="btn-secondary">Retour</button>
@@ -719,6 +787,20 @@ function OperationCard({ op, onEdit, onDelete, onView }) {
             {op.transporteur_nom&&<span className="flex items-center gap-1"><Truck size={10}/>{op.transporteur_nom}</span>}
             <span className="flex items-center gap-1"><Calendar size={10}/>{op.date_recuperation}</span>
           </div>
+          {op.repartitions?.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {op.repartitions.map((r,i) => {
+                const d = DEST_OPTIONS.find(x => x.key === r.type) || DEST_OPTIONS[0]
+                return (
+                  <span key={i} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${d.bg}`}>
+                    <d.icon size={9} className={d.color}/>
+                    <span className={d.color}>{parseFloat(r.quantite).toLocaleString('fr-FR',{maximumFractionDigits:1})} {op.unite_display||op.unite}</span>
+                    {r.operateur_nom && <span className="text-slate-500">· {r.operateur_nom.slice(0,20)}</span>}
+                  </span>
+                )
+              })}
+            </div>
+          )}
         </div>
         <div className="flex gap-1 flex-shrink-0" onClick={e=>e.stopPropagation()}>
           <button onClick={()=>onView(op)} className="btn-ghost p-2 text-slate-400 hover:text-primary-600"><Eye size={14}/></button>
@@ -854,11 +936,10 @@ export default function TracabilitePage() {
             {[
               ['Récupérateur',viewing.recuperateur_nom],['Générateur',viewing.generateur_nom],
               ['Code déchet',viewing.code_dechet],['Désignation',viewing.designation_dechet],
-              ['Classe',viewing.classe_dechet],['Quantité',`${viewing.quantite} ${viewing.unite_display||viewing.unite}`],
+              ['Classe',viewing.classe_dechet],['Quantité totale',`${viewing.quantite} ${viewing.unite_display||viewing.unite}`],
               ['Couleur',viewing.couleur_display],['Niveau de propreté',viewing.niveau_proprete_display],
               ['Date récupération',viewing.date_recuperation],['Transporteur',viewing.transporteur_nom],
               ['Chauffeur',viewing.chauffeur],['Immatriculation',viewing.immatriculation],
-              ['Destination',DESTINATIONS.find(d=>d.key===viewing.destination_type)?.label],
               ['N° BSD',viewing.bsd_numero],['Observations',viewing.observations],
             ].filter(([,v])=>v).map(([l,v])=>(
               <div key={l} className="flex gap-3 text-sm py-2 border-b border-slate-50 dark:border-[#2B3D1E] last:border-0">
@@ -866,6 +947,36 @@ export default function TracabilitePage() {
                 <span className="font-medium text-slate-800 dark:text-slate-200">{v}</span>
               </div>
             ))}
+
+            {/* Répartition des destinations */}
+            {viewing.repartitions?.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+                  <GitBranch size={11}/> Répartition des destinations
+                </p>
+                <div className="space-y-2">
+                  {viewing.repartitions.map((r, i) => {
+                    const d = DEST_OPTIONS.find(x => x.key === r.type) || DEST_OPTIONS[0]
+                    return (
+                      <div key={i} className={`flex items-center gap-3 p-3 rounded-xl border ${d.bg}`}>
+                        <d.icon size={15} className={`flex-shrink-0 ${d.color}`}/>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-xs font-bold ${d.color}`}>{d.label}</p>
+                          {r.operateur_nom && <p className="text-xs text-slate-500 truncate">{r.operateur_nom}</p>}
+                        </div>
+                        <span className="font-bold text-sm text-slate-800 dark:text-slate-200 flex-shrink-0">
+                          {parseFloat(r.quantite).toLocaleString('fr-FR',{maximumFractionDigits:3})} {viewing.unite_display||viewing.unite}
+                        </span>
+                      </div>
+                    )
+                  })}
+                  <div className="flex justify-between text-xs font-semibold text-slate-500 px-1 pt-1 border-t border-slate-100">
+                    <span>Total affecté</span>
+                    <span>{viewing.repartitions.reduce((s,r)=>s+(parseFloat(r.quantite)||0),0).toLocaleString('fr-FR',{maximumFractionDigits:3})} {viewing.unite_display||viewing.unite}</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

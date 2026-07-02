@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { Eye, EyeOff, ArrowRight } from 'lucide-react'
+import { Eye, EyeOff, ArrowRight, Leaf } from 'lucide-react'
 import { useAuthStore } from '../../store'
 import toast from 'react-hot-toast'
-import logo from '../../assets/logo.png'
 
 export default function LoginPage() {
   const { register, handleSubmit, formState: { errors } } = useForm()
@@ -72,7 +71,9 @@ export default function LoginPage() {
 
         {/* logo */}
         <div className="relative z-10 flex items-center gap-2.5 mb-16">
-          <img src={logo} alt="Recup نفاية" className="w-10 h-10 rounded-[10px] flex-shrink-0" />
+          <div className="w-10 h-10 rounded-[10px] bg-primary-600 flex items-center justify-center flex-shrink-0">
+            <Leaf className="w-5 h-5 text-white" />
+          </div>
           <span className="text-base font-medium text-[#EAF3DE]">Recup <span className="font-arabiya">نفاية</span></span>
         </div>
 
@@ -128,7 +129,9 @@ export default function LoginPage() {
 
         {/* mobile logo (left panel hidden below lg) */}
         <div className="lg:hidden absolute top-6 left-6 flex items-center gap-2.5 z-10">
-          <img src={logo} alt="Recup نفاية" className="w-10 h-10 rounded-[10px] flex-shrink-0" />
+          <div className="w-10 h-10 rounded-[10px] bg-primary-600 flex items-center justify-center flex-shrink-0">
+            <Leaf className="w-5 h-5 text-white" />
+          </div>
           <span className="text-base font-medium text-white">Recup <span className="font-arabiya">نفاية</span></span>
         </div>
 

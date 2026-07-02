@@ -49,6 +49,10 @@ class Operateur(models.Model):
     nom_conducteur          = models.CharField(max_length=200, blank=True)
     # Codes déchets autorisés
     codes_dechets_autorises = models.TextField(blank=True)
+    # Convention (CET uniquement)
+    convention_numero       = models.CharField(max_length=100, blank=True)
+    convention_date         = models.DateField(null=True, blank=True)
+    convention_duree        = models.IntegerField(null=True, blank=True, help_text="Durée en années")
     # Statut
     statut                  = models.CharField(max_length=15, choices=STATUT_CHOICES, default='ACTIF')
     notes                   = models.TextField(blank=True)
@@ -78,3 +82,18 @@ class Operateur(models.Model):
     @property
     def agrement_requis(self):
         return self.type_operateur in ('GENERATEUR', 'TRANSPORTEUR', 'ELIMINATEUR')
+
+    @property
+    def convention_date_fin(self):
+        if self.convention_date and self.convention_duree:
+            d = self.convention_date
+            return d.replace(year=d.year + self.convention_duree)
+        return None
+
+    @property
+    def convention_valide(self):
+        from datetime import date
+        fin = self.convention_date_fin
+        if fin:
+            return date.today() <= fin
+        return bool(self.convention_numero)

@@ -20,6 +20,7 @@ class Traceability(models.Model):
         ('STOCKAGE',     'Stockage temporaire'),
         ('RECYCLAGE',    'Recyclage'),
         ('CET',          "Centre d'Enfouissement Technique"),
+        ('MULTIPLE',     'Multi-destinations'),
     ]
     COULEUR_CHOICES = [
         ('TRANSPARENT', 'Transparent'),
@@ -110,6 +111,10 @@ class Traceability(models.Model):
     quantite_enfouie  = models.DecimalField(max_digits=12, decimal_places=3, null=True, blank=True)
     # BSD requis si DSD
     bsd_numero        = models.CharField(max_length=100, blank=True, verbose_name='N° BSD (si DSD)')
+
+    # ── Répartition multi-destinations ───────────────────────────
+    # Chaque élément : {type, quantite, operateur (id|null), operateur_nom, notes}
+    repartitions      = models.JSONField(default=list, blank=True)
 
     # ── Statut & suivi ────────────────────────────────────────────
     statut            = models.CharField(max_length=15, choices=STATUT_CHOICES, default='EN_COURS')

@@ -5,7 +5,7 @@ import {
   Building2, Truck, Flame, Recycle, MapPin,
   Phone, Mail, Award, Shield, AlertTriangle,
   CheckCircle2, ChevronDown, ChevronRight, Eye,
-  Factory, Landmark, TreePine
+  Factory, Landmark, TreePine, FileSignature
 } from 'lucide-react'
 import api from '../../api'
 import { WILAYAS, getCommunesByWilaya } from '../../utils/algeria_geo'
@@ -178,6 +178,8 @@ function OperateurForm({ operateur, onSave, onClose }) {
   if (!data.date_debut_agrement) delete data.date_debut_agrement
   if (!data.date_fin_agrement)   delete data.date_fin_agrement
   if (!data.duree_agrement)      delete data.duree_agrement
+  if (!data.convention_date)     delete data.convention_date
+  if (!data.convention_duree)    delete data.convention_duree
 
   data.codes_dechets_autorises = codesValue
 
@@ -297,6 +299,29 @@ function OperateurForm({ operateur, onSave, onClose }) {
         </div>
       )}
 
+      {/* Convention — CET uniquement */}
+      {type === 'CET' && (
+        <div className="card p-4 space-y-3 border-l-4 border-slate-400">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-2">
+            <FileSignature size={12} className="text-slate-500" /> Convention avec le récupérateur
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <F label="N° Convention" full>
+              <input {...register('convention_numero')} className="input" placeholder="CONV-16-2024-..." autoComplete="new-password" />
+            </F>
+            <F label="Date de la convention">
+              <DateInput value={watch('convention_date')||''} onChange={v=>setValue('convention_date',v)} />
+            </F>
+            <F label="Durée (années)">
+              <select {...register('convention_duree')} className="input">
+                <option value="">—</option>
+                {[1,2,3,4,5,10].map(n => <option key={n} value={n}>{n} an{n>1?'s':''}</option>)}
+              </select>
+            </F>
+          </div>
+        </div>
+      )}
+
       {/* Localisation */}
       <div className="card p-4 space-y-3">
         <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Localisation & Contact</p>
@@ -398,6 +423,21 @@ function OperateurCard({ op, onEdit, onDelete, onView }) {
               )}
             </div>
           )}
+          {op.type_operateur === 'CET' && op.convention_numero && (
+            <div className="flex items-center gap-2 mt-1.5">
+              <span className="flex items-center gap-1 text-xs font-semibold text-slate-600">
+                <FileSignature size={11} /> {op.convention_numero}
+              </span>
+              {op.convention_valide !== undefined && (
+                <span className={`text-[10px] font-bold ${op.convention_valide ? 'text-emerald-600' : 'text-red-600'}`}>
+                  {op.convention_valide ? '✅ Convention valide' : '🔴 Convention expirée'}
+                </span>
+              )}
+              {op.convention_date_fin && (
+                <span className="text-[10px] text-slate-400">jusqu'au {op.convention_date_fin}</span>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
           <button onClick={() => onView(op)} className="btn-ghost p-2 text-slate-400 hover:text-primary-600"><Eye size={14} /></button>
@@ -487,6 +527,24 @@ function DetailPanel({ op, onClose, onEdit }) {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Convention CET */}
+          {op.type_operateur === 'CET' && op.convention_numero && (
+            <div className={`card p-4 ${op.convention_valide ? 'border-slate-200 bg-slate-50/30' : 'border-red-200 bg-red-50/30'}`}>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+                  <FileSignature size={11} /> Convention
+                </p>
+                <span className={`badge ${op.convention_valide ? 'badge-green' : 'badge-red'}`}>
+                  {op.convention_valide ? '✅ Valide' : '🔴 Expirée'}
+                </span>
+              </div>
+              <Row label="N° Convention"  value={op.convention_numero} />
+              <Row label="Date"           value={op.convention_date} />
+              <Row label="Durée"          value={op.convention_duree ? `${op.convention_duree} an${op.convention_duree > 1 ? 's' : ''}` : null} />
+              <Row label="Échéance"       value={op.convention_date_fin} />
             </div>
           )}
 

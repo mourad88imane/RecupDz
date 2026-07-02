@@ -2,11 +2,13 @@ from rest_framework import serializers
 from .models import Operateur
 
 class OperateurSerializer(serializers.ModelSerializer):
-    type_display   = serializers.CharField(source='get_type_operateur_display', read_only=True)
-    statut_display = serializers.CharField(source='get_statut_display', read_only=True)
-    agrement_valide= serializers.ReadOnlyField()
-    codes_list     = serializers.ReadOnlyField()
-    recuperateur_nom = serializers.SerializerMethodField()
+    type_display       = serializers.CharField(source='get_type_operateur_display', read_only=True)
+    statut_display     = serializers.CharField(source='get_statut_display', read_only=True)
+    agrement_valide    = serializers.ReadOnlyField()
+    codes_list         = serializers.ReadOnlyField()
+    recuperateur_nom   = serializers.SerializerMethodField()
+    convention_date_fin= serializers.ReadOnlyField()
+    convention_valide  = serializers.ReadOnlyField()
 
     class Meta:
         model  = Operateur
