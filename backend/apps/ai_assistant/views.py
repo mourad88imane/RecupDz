@@ -212,11 +212,50 @@ Comment puis-je vous aider aujourd'hui ?"""
         }
 
     def _reponse_contextuelle(self, message, msg_lower, conversation, langue='fr'):
-        keywords = {
-            'nomenclature': 'nomenclature',
-            'code': 'nomenclature', 'classification': 'nomenclature'
-        }
-        if any(mot in msg_lower for mot in keywords) or 'huile' in msg_lower or 'batterie' in msg_lower or 'métal' in msg_lower or 'زيت' in msg_lower or 'بطارية' in msg_lower or 'معدن' in msg_lower:
+        import re
+        if re.search(r'\d{1,2}\.\d{1,2}\.\d{1,2}', message):
+            return self._rechercher_nomenclature(message, langue)
+
+        nomenclature_keywords_fr = [
+            'nomenclature', 'code déchet', 'code des déchets', 'classification',
+            'catégorie déchet', 'catégorie de déchet', 'famille déchet',
+            'déchet dangereux', 'déchet spécial', 'déchet ménager', 'déchet inerte',
+            'déchet plastique', 'déchet papier', 'déchet verre', 'déchet bois',
+            'déchet textile', 'déchet metal', 'déchet métal', 'déchet cuivre',
+            'déchet aluminium', 'déchet fer', 'déchet acier', 'déchet plomb',
+            'déchet batterie', 'déchet pile', 'déchet huile', 'déchet pneu',
+            'déchet peinture', 'déchet solvant', 'déchet chimique',
+            'déchet hospitalier', 'déchet infectieux', 'déchet emballage',
+            'déchet electronique', 'déchet électronique', 'deee',
+            'bsd obligatoire', 'agrément requis', 'déchet dangereux',
+            'huile', 'batterie', 'métal', 'plastique', 'papier', 'verre',
+            'bois', 'textile', 'cuivre', 'aluminium', 'fer', 'acier',
+            'plomb', 'pneu', 'peinture', 'solvant', 'acide', 'base',
+            'déchet', 'dechet', 'noms déchets', 'quels déchets',
+            'liste déchets', 'tous les déchets', 'code déchet',
+            'quelle catégorie', 'quelle classe', 'dangerosité', 'dangereux',
+            'inflammable', 'toxique', 'corrosif', 'cancérogène',
+        ]
+        nomenclature_keywords_ar = [
+            'تصنيف', 'تصنيف النفايات', 'رمز النفاية', 'رمز النفايات',
+            'نفاية', 'نفايات', 'نفايات خطرة', 'نفايات خاصة',
+            'نفايات منزلية', 'نفايات خاملة', 'نفايات بلاستيكية',
+            'نفايات ورقية', 'نفايات زجاجية', 'نفايات خشبية',
+            'نفايات نسيجية', 'نفايات معدنية', 'زيت', 'بطارية',
+            'معدن', 'إطارات', 'دهانات', 'مذيبات', 'مواد كيميائية',
+            'نفايات طبية', 'نفايات معدية', 'تغليف',
+            ' خطورة', 'خطر', 'سجلمتابعة',
+        ]
+        if any(mot in msg_lower for mot in nomenclature_keywords_fr) or \
+           any(mot in message for mot in nomenclature_keywords_ar):
+            if 'catégorie' in msg_lower or 'classe' in msg_lower or 'quelle catégorie' in msg_lower or 'quelle classe' in msg_lower or 'تصنيف' in message:
+                return self._nomenclature_par_categorie(message, langue)
+            if 'liste' in msg_lower or 'tous' in msg_lower or 'tous les' in msg_lower or 'قائمة' in message or 'جميع' in message:
+                return self._nomenclature_liste(message, langue)
+            if 'bsd obligatoire' in msg_lower or 'agrément requis' in msg_lower or 'bsd requis' in msg_lower:
+                return self._nomenclature_obligations(message, langue)
+            if 'danger' in msg_lower or 'dangereux' in msg_lower or 'inflammable' in msg_lower or 'toxique' in msg_lower or 'خطورة' in message or 'خطر' in message:
+                return self._nomenclature_dangerosite(message, langue)
             return self._rechercher_nomenclature(message, langue)
 
         agrement_keywords = ['agrément', 'agréments', 'validité', 'expire', 'expiré', 'اعتماد', 'صلاحيته']
@@ -239,17 +278,45 @@ Comment puis-je vous aider aujourd'hui ?"""
 
     def _rechercher_nomenclature(self, message, langue='fr'):
         from apps.nomenclature.models import Nomenclature
-        results = Nomenclature.objects.filter(
-            Q(designation_fr__icontains=message) |
-            Q(designation_ar__icontains=message) |
-            Q(code__icontains=message) |
-            Q(famille__icontains=message)
-        )[:10]
+        import re
+
+        msg_clean = message.strip().replace(':', '').replace('?', '').replace('!', '').strip()
+        code_match = re.search(r'(\d{1,2}\.\d{1,2}\.\d{1,2})', msg_clean)
+        if code_match:
+            raw = code_match.group(1)
+            parts = raw.split('.')
+            normalized = f"{int(parts[0]):02d}.{int(parts[1]):02d}.{int(parts[2]):02d}"
+            exact = Nomenclature.objects.filter(code=normalized).first()
+            if not exact:
+                exact = Nomenclature.objects.filter(code=raw).first()
+            if not exact:
+                results = Nomenclature.objects.filter(
+                    Q(code__icontains=parts[0]) &
+                    Q(code__icontains=parts[1])
+                )[:5]
+                if results.count() == 1:
+                    exact = results.first()
+            if exact:
+                return self._nomenclature_detail(exact, langue)
+
+        words = [w.strip() for w in msg_clean.lower().split() if len(w.strip()) > 2]
+        stop_words = {'quel', 'quelle', 'quels', 'quelles', 'est', 'les', 'des', 'les', 'une', 'sont', 'avec', 'pour', 'dans', 'cette', 'tout', 'tous', 'toute', 'toutes', 'autre', 'autres', 'donne', 'liste', 'code', 'codes', 'déchet', 'dechets', 'nomenclature', 'recherche', 'chercher', 'trouver', 'classifie', 'classification', 'catégorie', 'categorie', 'ma', 'mb', 'ما', 'هي', 'التي', 'في', 'من', 'على', 'عن', 'جميع', 'قائمة', 'أعطني'}
+        search_terms = [w for w in words if w not in stop_words][:5]
+        if not search_terms:
+            search_terms = [msg_clean.lower()[:20]]
+        query = Q()
+        for term in search_terms:
+            query |= Q(designation_fr__icontains=term)
+            query |= Q(designation_ar__icontains=term)
+            query |= Q(code__icontains=term)
+            query |= Q(famille__icontains=term)
+            query |= Q(sous_famille__icontains=term)
+        results = Nomenclature.objects.filter(query).distinct()[:10]
         if results:
             if langue == 'ar':
                 reponse = "## نتائج البحث في التصنيف :\n\n"
                 for r in results:
-                    danger = " ⚠️ خطير" if r.dangerosite_ar else ""
+                    danger = " ⚠️ خطير" if r.classe == 'SD' else ""
                     reponse += f"- **{r.code}** — {r.designation_ar or r.designation_fr}{danger}\n"
                     reponse += f"  الفئة : {r.classe} | العائلة : {r.famille}\n"
                     if r.bsd_obligatoire:
@@ -261,7 +328,7 @@ Comment puis-je vous aider aujourd'hui ?"""
             else:
                 reponse = "## Résultats de recherche dans la nomenclature :\n\n"
                 for r in results:
-                    danger = " ⚠️ DANGEREUX" if r.dangerosite_fr else ""
+                    danger = " ⚠️ DANGEREUX" if r.classe == 'SD' else ""
                     reponse += f"- **{r.code}** — {r.designation_fr}{danger}\n"
                     reponse += f"  Catégorie : {r.classe} | Famille : {r.famille}\n"
                     if r.bsd_obligatoire:
@@ -272,8 +339,222 @@ Comment puis-je vous aider aujourd'hui ?"""
                 reponse += "\n_Source : Référentiel national des déchets, Décret exécutif n°06-104_"
             return {'message': reponse}
         if langue == 'ar':
-            return {'message': "لم يتم العثور على نتائج في التصنيف. جرب بحثاً بكلمة أخرى (مثال: 'زيت', 'بطارية', 'معدن')."}
-        return {'message': "Aucun résultat trouvé dans la nomenclature. Essayez avec un autre terme (ex: 'huile', 'batterie', 'métal')."}
+            available = list(Nomenclature.objects.values_list('code', flat=True).order_by('code')[:20])
+            reponse = "لم يتم العثور على هذا الرمز في التصنيف.\n\n"
+            reponse += f"**الرموز المتاحة** ({Nomenclature.objects.count()} رمز) :\n"
+            reponse += ', '.join(f'`{c}`' for c in available)
+            if Nomenclature.objects.count() > 20:
+                reponse += "..."
+            reponse += "\n\nجرب بحثاً بكلمة مثل: 'زيت', 'بلاستيك', 'زجاج'."
+            return {'message': reponse}
+        available = list(Nomenclature.objects.values_list('code', flat=True).order_by('code')[:20])
+        reponse = "Ce code n'existe pas dans la nomenclature.\n\n"
+        reponse += f"**Codes disponibles** ({Nomenclature.objects.count()} au total) :\n"
+        reponse += ', '.join(f'`{c}`' for c in available)
+        if Nomenclature.objects.count() > 20:
+            reponse += "..."
+        reponse += "\n\nEssayez un code existant ou cherchez par nom (ex: 'huile', 'plastique', 'batterie')."
+        return {'message': reponse}
+
+    def _nomenclature_detail(self, n, langue='fr'):
+        classe_labels = {
+            'MA': ('Ménagers et Assimilés', 'نفايات منزلية'),
+            'I': ('Inertes', 'نفايات خاملة'),
+            'S': ('Spéciaux', 'نفايات خاصة'),
+            'SD': ('Spéciaux Dangereux', 'نفايات خاصة خطرة'),
+        }
+        fr_label, ar_label = classe_labels.get(n.classe, (n.classe, n.classe))
+
+        dangers = []
+        if n.explosible: dangers.append(('Explosible', 'متفجر'))
+        if n.inflammable: dangers.append(('Inflammable', 'ácil للاشتعال'))
+        if n.toxique: dangers.append(('Toxique', 'سام'))
+        if n.cancerogene: dangers.append(('Cancérogène', 'مسرطن'))
+        if n.corrosive: dangers.append(('Corrosif', 'آكل'))
+        if n.infectieuse: dangers.append(('Infectieux', 'ممرض'))
+        if n.dangereuse_environnement: dangers.append(('Dangereux environnement', 'خطير للبيئة'))
+
+        if langue == 'ar':
+            reponse = f"## التصنيف — `{n.code}`\n\n"
+            reponse += f"### {n.designation_ar or n.designation_fr}\n\n"
+            reponse += f"**الرمز** : `{n.code}`\n"
+            reponse += f"**التصنيف** : {n.classe} — {ar_label}\n"
+            reponse += f"**العائلة** : {n.famille} — {n.sous_famille}\n"
+            if n.dangerosite_ar:
+                reponse += f"**الخطورة** : {n.dangerosite_ar}\n"
+            if dangers:
+                reponse += f"**أنواع الخطورة** : {', '.join(ar for _, ar in dangers)}\n"
+            reponse += "\n"
+            reponse += f"**📋 بوليصة متابعة** : {'مطلوب' if n.bsd_obligatoire else 'غير مطلوب'}\n"
+            reponse += f"**📝 اعتماد** : {'مطلوب' if n.agrement_requis else 'غير مطلوب'}\n"
+            if n.conditions_stockage:
+                reponse += f"\n**📦 شروط التخزين** :\n{n.conditions_stockage}\n"
+            if n.conditions_transport:
+                reponse += f"\n**🚛 شروط النقل** :\n{n.conditions_transport}\n"
+            if n.filieres_valorisation:
+                reponse += f"\n**♻️ قنوات التثمين** :\n{n.filieres_valorisation}\n"
+            if n.filieres_elimination:
+                reponse += f"\n**🗑️ قنوات الإزالة** :\n{n.filieres_elimination}\n"
+            reponse += "\n_المصدر: المرجع الوطني للنفايات، المرسوم التنفيذي رقم 06-104_"
+        else:
+            reponse = f"## Nomenclature — `{n.code}`\n\n"
+            reponse += f"### {n.designation_fr}\n\n"
+            reponse += f"**Code** : `{n.code}`\n"
+            reponse += f"**Classe** : {n.classe} — {fr_label}\n"
+            reponse += f"**Famille** : {n.famille} — {n.sous_famille}\n"
+            if n.designation_ar:
+                reponse += f"**Désignation arabe** : {n.designation_ar}\n"
+            if n.dangerosite_fr:
+                reponse += f"**Dangerosité** : {n.dangerosite_fr}\n"
+            if dangers:
+                reponse += f"**Types de danger** : {', '.join(fr for fr, _ in dangers)}\n"
+            reponse += "\n"
+            reponse += f"**📋 BSD obligatoire** : {'Oui' if n.bsd_obligatoire else 'Non'}\n"
+            reponse += f"**📝 Agrément requis** : {'Oui' if n.agrement_requis else 'Non'}\n"
+            if n.conditions_stockage:
+                reponse += f"\n**📦 Conditions de stockage** :\n{n.conditions_stockage}\n"
+            if n.conditions_transport:
+                reponse += f"\n**🚛 Conditions de transport** :\n{n.conditions_transport}\n"
+            if n.filieres_valorisation:
+                reponse += f"\n**♻️ Filières de valorisation** :\n{n.filieres_valorisation}\n"
+            if n.filieres_elimination:
+                reponse += f"\n**🗑️ Filières d'élimination** :\n{n.filieres_elimination}\n"
+            reponse += "\n_Source : Référentiel national des déchets, Décret exécutif n°06-104_"
+        return {'message': reponse}
+
+    def _nomenclature_par_categorie(self, message, langue='fr'):
+        from apps.nomenclature.models import Nomenclature
+        msg_lower = message.lower()
+        classe_map = [
+            ('ménager', 'MA'), ('menager', 'MA'), ('maison', 'MA'),
+            ('inerte', 'I'),
+            ('spécial', 'S'), ('special', 'S'),
+            ('dangereux', 'SD'), ('dangereuse', 'SD'),
+            ('ma', 'MA'), ('sd', 'SD'),
+            ('i', 'I'), ('s', 'S'),
+            ('معلمة', 'MA'), ('منزلي', 'MA'), ('خامل', 'I'), ('خاص', 'S'), ('خطير', 'SD'),
+        ]
+        classe = None
+        for key, val in classe_map:
+            if key in msg_lower or key in message:
+                classe = val
+                break
+        if classe:
+            results = Nomenclature.objects.filter(classe=classe)
+            count = results.count()
+            if langue == 'ar':
+                classe_ar = {'MA': 'نفايات منزلية', 'I': 'نفايات خاملة', 'S': 'نفايات خاصة', 'SD': 'نفايات خاصة خطرة'}
+                reponse = f"## نفايات فئة {classe_ar.get(classe, classe)} ({count} رمز)\n\n"
+                for r in results[:15]:
+                    bsd = " 📋 BSD" if r.bsd_obligatoire else ""
+                    agr = " 📝 اعتماد" if r.agrement_requis else ""
+                    reponse += f"- **{r.code}** — {r.designation_ar or r.designation_fr}{bsd}{agr}\n"
+                if count > 15:
+                    reponse += f"\n_... و {count - 15} رمز آخر_"
+            else:
+                classe_fr = {'MA': 'Ménagers et Assimilés', 'I': 'Inertes', 'S': 'Spéciaux', 'SD': 'Spéciaux Dangereux'}
+                reponse = f"## Catégorie {classe_fr.get(classe, classe)} — {count} codes\n\n"
+                for r in results[:15]:
+                    bsd = " 📋 BSD obligatoire" if r.bsd_obligatoire else ""
+                    agr = " 📝 Agrément requis" if r.agrement_requis else ""
+                    reponse += f"- **{r.code}** — {r.designation_fr}{bsd}{agr}\n"
+                if count > 15:
+                    reponse += f"\n_... et {count - 15} codes supplémentaires_"
+            return {'message': reponse}
+        return self._rechercher_nomenclature(message, langue)
+
+    def _nomenclature_liste(self, message, langue='fr'):
+        from apps.nomenclature.models import Nomenclature
+        results = Nomenclature.objects.all()
+        count = results.count()
+        classes = results.values('classe').annotate(c=Count('id')).order_by('classe')
+        if langue == 'ar':
+            reponse = f"## قائمة النفايات — {count} رمز إجمالي\n\n"
+            reponse += "**الملخص حسب الفئة** :\n"
+            for cl in classes:
+                cl_label = {'MA': 'منزلي', 'I': 'خامل', 'S': 'خاص', 'SD': 'خطر'}
+                reponse += f"- **{cl_label.get(cl['classe'], cl['classe'])}** : {cl['c']} رمز\n"
+            reponse += f"\n**أمثلة** :\n"
+            for r in results[:10]:
+                reponse += f"- `{r.code}` — {r.designation_ar or r.designation_fr} [{r.classe}]\n"
+            reponse += f"\n_المصدر: المرجع الوطني للنفايات — المرسوم 06-104_"
+        else:
+            reponse = f"## Liste complète de la nomenclature — {count} codes\n\n"
+            reponse += "**Résumé par catégorie** :\n"
+            for cl in classes:
+                cl_label = {'MA': 'Ménagers et Assimilés', 'I': 'Inertes', 'S': 'Spéciaux', 'SD': 'Spéciaux Dangereux'}
+                reponse += f"- **{cl_label.get(cl['classe'], cl['classe'])}** : {cl['c']} codes\n"
+            reponse += f"\n**Exemples** :\n"
+            for r in results[:10]:
+                reponse += f"- `{r.code}` — {r.designation_fr} [{r.classe}]\n"
+            reponse += f"\n_Source : Référentiel national des déchets — Décret 06-104_"
+        return {'message': reponse}
+
+    def _nomenclature_obligations(self, message, langue='fr'):
+        from apps.nomenclature.models import Nomenclature
+        bsd_codes = Nomenclature.objects.filter(bsd_obligatoire=True)
+        agr_codes = Nomenclature.objects.filter(agrement_requis=True)
+        if langue == 'ar':
+            reponse = "## الالتزامات التنظيمية للنفايات\n\n"
+            reponse += f"### 📋 بوليصة متابعة مطلوبة ({bsd_codes.count()} رمز)\n"
+            for r in bsd_codes[:10]:
+                reponse += f"- `{r.code}` — {r.designation_ar or r.designation_fr}\n"
+            reponse += f"\n### 📝 اعتماد مطلوب ({agr_codes.count()} رمز)\n"
+            for r in agr_codes[:10]:
+                reponse += f"- `{r.code}` — {r.designation_ar or r.designation_fr}\n"
+            reponse += "\n_المصدر: القانون 01-19 والمرسوم 06-104_"
+        else:
+            reponse = "## Obligations réglementaires par code déchet\n\n"
+            reponse += f"### 📋 BSD obligatoire ({bsd_codes.count()} codes)\n"
+            for r in bsd_codes[:10]:
+                reponse += f"- `{r.code}` — {r.designation_fr}\n"
+            reponse += f"\n### 📝 Agrément requis ({agr_codes.count()} codes)\n"
+            for r in agr_codes[:10]:
+                reponse += f"- `{r.code}` — {r.designation_fr}\n"
+            reponse += "\n_Source : Loi 01-19 et Décret 06-104_"
+        return {'message': reponse}
+
+    def _nomenclature_dangerosite(self, message, langue='fr'):
+        from apps.nomenclature.models import Nomenclature
+        dangers = {
+            'explosible': ('Explosible', 'متفجر'),
+            'inflammable': ('Inflammable', 'ácil'),
+            'toxique': ('Toxique', 'سام'),
+            'cancerogene': ('Cancérogène', 'مسرطن'),
+            'corrosive': ('Corrosif', 'آكل'),
+            'infectieuse': ('Infectieux', 'عدوى'),
+            'dangereuse_environnement': ('Dangereux pour l\'environnement', 'خطير للبيئة'),
+        }
+        msg_lower = message.lower()
+        found = None
+        for key in dangers:
+            if key in msg_lower or dangers[key][0].lower() in msg_lower:
+                found = key
+                break
+        if found:
+            results = Nomenclature.objects.filter(**{found: True})
+            fr_label, ar_label = dangers[found]
+            if langue == 'ar':
+                reponse = f"## نفايات {ar_label} ({results.count()} رمز)\n\n"
+                for r in results[:15]:
+                    reponse += f"- `{r.code}` — {r.designation_ar or r.designation_fr} [{r.classe}]\n"
+            else:
+                reponse = f"## Déchets {fr_label} ({results.count()} codes)\n\n"
+                for r in results[:15]:
+                    reponse += f"- `{r.code}` — {r.designation_fr} [{r.classe}]\n"
+            return {'message': reponse}
+        all_dangerous = Nomenclature.objects.filter(classe='SD')
+        if langue == 'ar':
+            reponse = f"## النفايات الخطرة ({all_dangerous.count()} رمز)\n\n"
+            reponse += "**أنواع الخطورة** : متفجر، قابل للاشتعال، سام، مسرطن، آكل، عدوى، خطير للبيئة\n\n"
+            for r in all_dangerous[:10]:
+                reponse += f"- `{r.code}` — {r.designation_ar or r.designation_fr}\n"
+        else:
+            reponse = f"## Déchets dangereux ({all_dangerous.count()} codes)\n\n"
+            reponse += "**Types de dangerosité** : Explosible, Inflammable, Toxique, Cancérogène, Corrosif, Infectieux, Dangereux pour l'environnement\n\n"
+            for r in all_dangerous[:10]:
+                reponse += f"- `{r.code}` — {r.designation_fr}\n"
+        return {'message': reponse}
 
     def _verifier_agrements(self, langue='fr'):
         aujourd_hui = timezone.now().date()
@@ -566,6 +847,12 @@ Comment puis-je vous aider aujourd'hui ?"""
             "Générer un rapport mensuel",
             "Vérifier la conformité d'un récupérateur",
             "Liste des déchets dangereux autorisés",
+            "Quels déchets nécessitent un BSD ?",
+            "Donne les codes déchets plastiques",
+            "Nomenclature des déchets d'emballage",
+            "Déchets spéciaux vs déchets dangereux",
+            "Quels déchets sont inflammables ?",
+            "Recherche déchet : batteries au plomb",
         ]
         return Response({'suggestions': suggestions})
 

@@ -72,6 +72,13 @@ function Suggestions({ onSelect }) {
     'Principe pollueur-payeur',
   ]
 
+  const nomenclatureQuick = [
+    'Liste des codes déchets',
+    'Déchets plastiques',
+    'Déchets qui nécessitent un BSD',
+    'Codes déchets dangereux',
+  ]
+
   return (
     <div className="mb-2 w-full">
       <p className="text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1">
@@ -81,6 +88,17 @@ function Suggestions({ onSelect }) {
         {glossaryQuick.map((s, i) => (
           <button key={i} onClick={() => onSelect(s)}
             className="px-2 py-1 rounded-full text-[10px] font-medium bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800 hover:bg-primary-100 transition-all">
+            <BookOpen size={8} className="inline mr-0.5" />{s}
+          </button>
+        ))}
+      </div>
+      <p className="text-[10px] font-bold text-slate-400 mt-2 mb-1 flex items-center gap-1">
+        <BookOpen size={10} /> Nomenclature
+      </p>
+      <div className="flex flex-wrap gap-1 justify-center">
+        {nomenclatureQuick.map((s, i) => (
+          <button key={i} onClick={() => onSelect(s)}
+            className="px-2 py-1 rounded-full text-[10px] font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 transition-all">
             <BookOpen size={8} className="inline mr-0.5" />{s}
           </button>
         ))}
@@ -275,10 +293,10 @@ export default function AIAssistantPage() {
                 </div>
                 <p className="text-sm font-bold text-slate-700 dark:text-white mb-1 text-center">Bonjour !</p>
                 <p className="text-[11px] text-slate-400 text-center mb-2">
-                  Assistant IA réglementaire — Glossaire des déchets
+                  Assistant IA réglementaire — Glossaire & Nomenclature des déchets
                 </p>
                 <div className="flex flex-wrap gap-1 justify-center mb-3">
-                  {['BSD', 'Agrément', 'Déchet dangereux', 'Recyclage', 'Loi 01-19'].map(t => (
+                  {['BSD', 'Agrément', 'Déchet dangereux', 'Nomenclature', 'Loi 01-19'].map(t => (
                     <span key={t} className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-300 border border-primary-200 dark:border-primary-800">
                       {t}
                     </span>

@@ -525,6 +525,154 @@ DECHETS SPÉCIAUX DANGEREUX (SD):
         'langue': 'fr',
         'tags': ['referentiel', 'codes', 'courants', 'frequents', 'recherche'],
     },
+    {
+        'categorie': 'referentiel',
+        'titre': 'Emballages — codes déchets d\'emballage (15.01)',
+        'contenu': '''Codes de la nomenclature pour les déchets d'emballage (Décret 06-104).
+
+15.01 — Emballages:
+- 15.01.01: Emballages en papier et carton (تغليف ورقي وكرتون)
+- 15.01.02: Emballages en matières plastiques (تغليف بلاستيكي)
+- 15.01.03: Emballages en bois (تغليف خشبي)
+- 15.01.04: Emballages métalliques (تغليف معدني)
+- 15.01.05: Emballages composites (تغليف مركب)
+- 15.01.06: Emballages en mélange (تغليف مختلط)
+- 15.01.07: Emballages en verre (تغليف زجاجي)
+- 15.01.08: Emballages textiles (تغليف نسيجي)
+
+OBLIGATIONS:
+- Pas de BSD obligatoire pour les emballages MA
+- Tri à la source recommandé
+- Collecte sélective valorisable
+- Emballages plastiques: recyclables si triés par type de plastique
+
+FILIÈRES DE VALORISATION:
+- Papier/carton → Recyclage papetier
+- Plastiques → Recyclage mécanique ou chimique
+- Verre → Cuisson nouveau verre
+- Métaux → Fusion et recyclage
+- Bois → Seuillage, compostage, énergie''',
+        'reference_reglementaire': 'Décret exécutif n°06-104, Annexe II',
+        'tags': ['emballage', 'papier', 'carton', 'plastique', 'verre', 'bois', 'textile', 'metal', '15.01'],
+    },
+    {
+        'categorie': 'referentiel',
+        'titre': 'Nomenclature des huiles usagées et lubrifiants (13.01, 13.02)',
+        'contenu': '''Codes de la nomenclature pour les huiles usagées et lubrifiants.
+
+13.01 — Huiles et autres liquides:
+- 13.01.01: Huiles hydrauliques chlorées (زيوت هيدروليكية مكلورة) — SD
+- 13.01.04: Huiles hydrauliques minérales non chlorées — S
+- 13.01.09: Huiles hydrauliques minérales chlorées (زيوت هيدروليكية معدنية مكلورة) — SD
+
+13.02 — Huiles moteur et lubrifiantes:
+- 13.02.01: Huiles moteur, de boîte de vitesses et de lubrification usagées (زيوت المحرك المستعملة) — S
+- 13.02.05: Huiles moteur et de transmission usagées non chlorées — S
+
+CLASSIFICATION:
+- S (Spécial): Huiles non chlorées — BSD obligatoire, Agrément CAT2
+- SD (Spécial Dangereux): Huiles chlorées — BSD obligatoire, Agrément CAT3
+
+FILIÈRES DE TRAITEMENT:
+- Régénération (huiles de base)
+- Utilisation comme combustible (cimenteries)
+- Élimination en installation agréée
+
+OBLIGATIONS:
+- BSD obligatoire pour toutes les huiles usagées
+- Interdiction de rejet dans les eaux ou le sol
+- Conservation des registres d'entrées/sorties''',
+        'reference_reglementaire': 'Décret exécutif n°06-104, Codes 13.01-13.02',
+        'tags': ['huile', 'lubrifiant', 'moteur', 'hydraulique', '13.01', '13.02', 'regeneration'],
+    },
+    {
+        'categorie': 'referentiel',
+        'titre': 'Nomenclature des batteries et accumulateurs (16.06)',
+        'contenu': '''Codes de la nomenclature pour les batteries et accumulateurs.
+
+16.06 — Piles et accumulateurs:
+- 16.06.01: Batteries au plomb (بطاريات الرصاص) — S
+- 16.06.02: Batteries Ni-Cd (بطاريات نيكل كادميوم) — S
+- 16.06.05: Autres piles et accumulateurs — S
+
+DANGEROSITÉ:
+- Plomb: Toxique, cancérogène (Catégorie SD si contenant >5% plomb)
+- Cadmium: Toxique, cancérogène
+- Acide sulfurique: Corrosif
+
+OBLIGATIONS:
+- BSD obligatoire pour tous les types
+- Agrément CAT2 (S) ou CAT3 (SD selon composition)
+- Interdiction de mise en décharge
+- Filier de recyclage obligatoire
+
+TRAITEMENT:
+- Broyage et séparation des matériaux
+- Régénération du plomb
+- Recyclage du plastique de boîtier
+- Traitement des acides''',
+        'reference_reglementaire': 'Décret exécutif n°06-104, Code 16.06',
+        'tags': ['batterie', 'accumulateur', 'plomb', 'cadmium', 'pile', '16.06'],
+    },
+    {
+        'categorie': 'referentiel',
+        'titre': 'Nomenclature des métaux et ferraille (17.04)',
+        'contenu': '''Codes de la nomenclature pour les métaux et ferraille.
+
+17.04 — Métaux:
+- 17.04.01: Cuivre, bronze, laiton (نحاس وبرونز ونحاس أصفر) — I
+- 17.04.02: Aluminium (ألمنيوم) — I
+- 17.04.05: Fer et acier (حديد وفولاذ) — I
+- 17.04.07: Métaux en mélange (معادن مختلطة) — I
+
+CATÉGORIE:
+- I (Inerte): Pas de BSD obligatoire
+- Pas d'agrément requis pour la collecte
+- Déclaration à l'APC suffisante (CAT1)
+
+VALORISATION:
+- Cuivre/bronze/laiton → Filature et laminage
+- Aluminium → Refonte et alliages
+- Fer/acier → Haut-fourneau et conversion
+- Métaux en mélange → Tri et séparation
+
+MARCHÉ:
+- Prix variable selon le type de métal
+- Le cuivre et l'aluminium ont la meilleure valeur
+- La ferraille est le métal le plus collecté en Algérie''',
+        'reference_reglementaire': 'Décret exécutif n°06-104, Code 17.04',
+        'tags': ['metal', 'ferraille', 'cuivre', 'aluminium', 'fer', 'acier', '17.04'],
+    },
+    {
+        'categorie': 'referentiel',
+        'titre': 'Nomenclature des déchets plastiques (17.02.03, 15.01.02, 20.01)',
+        'contenu': '''Codes de la nomenclature pour les déchets plastiques.
+
+PLASTIQUES DANS LA NOMENCLATURE:
+- 17.02.03: Matières plastiques (déchets de construction) — I
+- 15.01.02: Emballages en matières plastiques — MA
+- 20.01.36: Équipements électriques et électroniques (contient du plastique) — MA
+
+TYPES DE PLASTIQUES:
+- PET (Polyéthylène téréphtalate): Bouteilles d'eau, emballages — Très recyclable
+- PEHD (Polyéthylène haute densité): Flacons, bidons — Recyclable
+- PVC (Polychlorure de vinyle): Tuyaux, fenêtres — Difficile à recycler
+- LDPE (Polyéthylène basse densité): Films, sacs — Recyclable
+- PP (Polypropylène): Capsules, conteneurs — Recyclable
+- PS (Polystyrène): Barquettes, isolation — Peu recyclable
+
+FILIÈRES DE VALORISATION:
+- Recyclage mécanique: Broyage, lavage, extrusion
+- Recyclage chimique: Dépolymérisation
+- Valorisation énergétique: Incinération avec récupération d'énergie
+
+OBLIGATIONS:
+- Pas de BSD pour les plastiques MA
+- BSD pour les plastiques spéciaux (S/SD)
+- Tri par type de plastique recommandé''',
+        'reference_reglementaire': 'Décret exécutif n°06-104',
+        'tags': ['plastique', 'PET', 'PEHD', 'PVC', 'recyclage', 'emballage'],
+    },
 ]
 
 
